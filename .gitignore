@@ -1,0 +1,6 @@
+^\..*$
+local/
+.Rproj.user/
+.RData
+.httr-oauth
+
