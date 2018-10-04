@@ -20,10 +20,10 @@
 svy <- function(dat = kobo_data(),
                 form = kobo_form(),
                 group = NULL) {
+  if(is.na(dat)) return(NULL)
   dat %<>%
-    as_tibble %>%
+    as_tibble.odk_data %>%
     svq.group(node = form, group = group) %>%
-    # (function(x){browser();x}) %>%
     as_tibble(validate = FALSE) %>%
     structure(class = c("svy", class(tibble())))
 }
@@ -72,14 +72,14 @@ svq.group <- function(dat, node, group){
         } else {
           dat %<>%
             getElement(cn) %>%
-            as.character %>%
+            # as.character %>%
             svq(qn, group)
         }
         dat %<>%
-          structure(node = qn, group = group) %>%
-          list %>%
-          structure(names = cn)
-      } else svq(dat, qn, group)) %>%
+          structure(node = qn, group = group) %>% # add svg attributes
+          list %>% # protect in a list
+          structure(names = cn) # name the element in the list by the column
+      } else svq(dat, qn, group)) %>% # sub-groups get passed in again. 
     do.call(c, .)
 }
 
@@ -88,6 +88,7 @@ svq.survey <- svq.group
 # repeat is a reserved word and make.names adds the terminal dot
 svq.repeat. <- function(dat, node, group){
   dat %>%
+    structure(.,class = c("odk_data",class(.))) %>% 
     lapply(svy, form = node, group = group) %>%
     structure(node = node, group = group)
 }
