@@ -13,6 +13,7 @@ kobo_curl <- function(endpoint,
                       dat = NULL,
                       method = "GET",
                       options = list(),
+                      form = list(),
                       headers = list(),
                       server = getOption("koboServer"),
                       token = getOption("koboToken")){
@@ -21,6 +22,7 @@ kobo_curl <- function(endpoint,
   new_handle() %>%
     handle_setopt(.list = options) %>%
     handle_setheaders(.list = headers) %>%
+    handle_setform(.list = form) %>% 
     curl(paste0(getOption("koboServer"),"/api/v1/",endpoint), handle = .)
 }
 
@@ -76,6 +78,19 @@ kobo_data <- function(formid = getOption("koboID"),
             class = "odk_data")
   close(con)
   if(raw) res else as_tibble(res)
+}
+
+kobo_submit <- function(file,
+                        formid = getOption("koboID"),
+                        server = getOption("koboServer"),
+                        token = getOption("koboToken")){
+  con <- kobo_curl(paste0("submissions/",formid), 
+                   method = "POST", 
+                   form = list(xml_submission_file=paste0("@", file))
+  )
+  res <- readLines(con)
+  close(con)
+  res
 }
 
 get.kobo.doc <- function(endpoint,
