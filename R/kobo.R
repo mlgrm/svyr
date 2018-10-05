@@ -19,12 +19,15 @@ kobo_curl <- function(endpoint,
                       token = getOption("koboToken")){
   if (method != "GET") options$copypostfields <- method
   headers$Authorization <- paste("Token", token)
-  h <- 
-    new_handle() %>%
-    handle_setopt(.list = options) %>%
-    handle_setheaders(.list = headers)
+  h <- new_handle()
+  if(is.list(options) && length(options)>0) 
+    h %<>% handle_setopt(.list = options)
+  if(is.list(headers) && length(headers)>0) 
+    h %<>% handle_setheaders(.list = headers)
   # kobo does not appear to like "GET" requests with forms in them
-  if(method == "POST" && length(form)>0) h <- handle_setform(h, .list = form)
+  if(method == "POST" && 
+     is.list(form) && length(form)>0) 
+    h %<>% handle_setform(.list = form)
   curl(paste0(getOption("koboServer"),"/api/v1/",endpoint), handle = h)
 }
 
@@ -86,14 +89,31 @@ kobo_submit <- function(file,
                         formid = getOption("koboID"),
                         server = getOption("koboServer"),
                         token = getOption("koboToken")){
-  con <- kobo_curl(paste0("submissions/",formid), 
-                   method = "POST", 
-                   form = list(xml_submission_file=paste0("@", file))
+  system(
+    sprintf(
+      paste("curl -X POST",
+             "-F xml_submission_file=@%s",
+             "%s/api/v1/submissions",
+             "-H \"Authorization: Token %s\""
+      ),
+      file, server, token)
   )
-  res <- readLines(con)
+}
+
+kobo_submit <- function(file,
+                        formid = getOption("koboID"),
+                        server = getOption("koboServer"),
+                        token = getOption("koboToken")){
+  con <- kobo_curl(paste0("submissions"),
+                   method = "POST",
+                   form = list(xml_submission_file=form_file(file))
+  )
+  res <- tryCatch(readLines(con),
+                  error=identity
+  )
   close(con)
   res
-}
+}  
 
 get.kobo.doc <- function(endpoint,
                      dat=NULL,
