@@ -19,11 +19,13 @@ kobo_curl <- function(endpoint,
                       token = getOption("koboToken")){
   if (method != "GET") options$copypostfields <- method
   headers$Authorization <- paste("Token", token)
-  new_handle() %>%
+  h <- 
+    new_handle() %>%
     handle_setopt(.list = options) %>%
-    handle_setheaders(.list = headers) %>%
-    handle_setform(.list = form) %>% 
-    curl(paste0(getOption("koboServer"),"/api/v1/",endpoint), handle = .)
+    handle_setheaders(.list = headers)
+  # kobo does not appear to like "GET" requests with forms in them
+  if(method == "POST" && length(form)>0) h <- handle_setform(h, .list = form)
+  curl(paste0(getOption("koboServer"),"/api/v1/",endpoint), handle = h)
 }
 
 #' retrieve a list of all a user's projects from a kobo server
