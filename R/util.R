@@ -1,8 +1,14 @@
 library(plyr)
 library(dplyr)
 
+#' get or set the node of a \code{svq|svy}
 #' @export
 node <- function(x)attr(x,"node")
+
+#' @rdname node
+#' @export
+'node<-' <- function(x,value) structure(x, node = value)
+
 
 #' @export
 name <- function(x, use.node = TRUE, empty.string = FALSE){
@@ -22,11 +28,23 @@ type <- function(x, use.node=TRUE, empty.string = FALSE){
 types <- function(s)laply(s, type, empty.string = TRUE)
 
 #' @export
-label <- function(x,use.node=TRUE){
+label <- function(x, lang=getOption("svyLang", "English"), use.node = TRUE){
   if(use.node) node <- node(x) else node <- x
-  lbl <- if(is.list(node$label))
-    node$label[[getOption("svyLang","English")]] else
-      if(is.null(node$label)) "" else node$label
+  if(is.list(node$label)){ # if there is more than one label
+    i <- match(tolower(lang), tolower(names(node$label))) # ignore caps
+    
+    if(is.na(i)) stop("language ", lang, "not available. ", 
+                      "available languages:", 
+                      paste(names(node$label), collapse = ", "),
+                      "."
+    )
+    lbl <- node$label[[i]] # choose the matching language
+  } else {
+    # if there's no label, empty string, else the string
+    if(is.null(node$label))
+      lbl <- "" else 
+        lbl <- node$label
+  }
   # we can only get the question and answer if we got the whole datum
   if(use.node && !is.null(type(x)) && type(x)=="select all that apply")
     lbl <- paste(lbl,labels(x)[selected(x)],sep=":")
@@ -41,6 +59,19 @@ labels.svq <- function(x,use.node=TRUE){
   lbls
 }
 
+#' get or set the languages of a survey
+#' @export
+languages <- function(s){
+  if(!is.null(attr(s, "languages"))) return(attr(s,"languages"))
+  llply(s, function(x)names(node(x)$label)) %>% 
+    unlist %>% 
+    unique
+}
+
+#' @rdname languages
+#' @export
+'languages<-' <- function(x,value) structure(x, languages = value)
+
 #' @export
 labels.svy <- function(s)laply(s,label)
 
@@ -48,38 +79,59 @@ labels.svy <- function(s)laply(s,label)
 #' @export
 class1 <- function(x)class(x)[1]
 
+#' perform an arbitrary function on an object, preserving some attributes 
+#' 
 #' @export
-preserve <- function(x,fun,...) UseMethod("preserve", x)
-
-# preserve.list <- function(
-#   l, fun,...){
-#   incl=getOption("svyAttrIncl",names(attributes(x)))
-#   incl.list=getOption("svyAttrInclList", c(
-#     "node",
-#     "group",
-#     "data"
-#   ))
-#   l0 <- fun(l,...)
-#   for(i in 1:length(l)) attributes(l0[[i]])[incl] <- attributes(l[[i]])[incl]
-#   attributes(l0)[incl.list] <- attributes(l)[incl.list]
-#   if(class(l)[1]!=class(l0)[1]) class(l0) <- c(class(l)[1],class(l0))
-#   l0
-# }
-# 
-# preserve.data.frame <- preserve.list
-# 
-preserve.default <- function(
-  x,fun,incl=getOption("svyAttrIncl",c("class","group","node","data")),...){
-  # browser()
-  x0 <- fun(x,...)
-  incl <- incl[incl %in% names(attributes(x))]
-  attributes(x0)[incl] <- attributes(x)[incl]
-  if(class(x0)[1]!=class(x)[1]) class(x0) <- c(class(x)[1],class(x0))
-  x0
+preserve <- function(x,
+                             fun,
+                             atts=getOption("svyAttrIncl",
+                                            c(
+                                              "group",
+                                              "node", 
+                                              "languages"
+                                            )
+                             ),
+                             ...){
+  x %>% 
+    fun(...) %>% #debug_pipe %>%  
+    copy_atts(x, atts = atts)
 }
 
-selected <- function(x)attr(x,"selected")
+#' copy some attributes from one object to another, recursively
+#' 
+#' @export
+#' @rdname copy_atts
+copy_atts <- function(to, from, atts=getOption("svyAttrIncl", 
+                                                    c(
+                                                      "group",
+                                                      "node", 
+                                                      "languages"
+                                                      )
+                                                    ),
+                      recursive=TRUE){
+  # first copy childrens' attriibutes, then our own
+  if(recursive && is.list(to) && length(to)==length(from)){
+    for(n in names(to)) to[[n]] <- copy_atts(to[[n]],from[[n]])
+    # to <- llply(purrr::transpose(list(to = to, from = from)), function(l){
+    #   copy_atts(to = l$to, from = l$from, atts = atts)
+    # })
+  }
+  atts <- atts[atts %in% attributes(from)]
+  attributes(to)[atts] <- attributes(from)[atts]
+  if(class(to)[1]!=class(from)[1]) class(to) <- c(class(from)[1], class(to))
+  to
+}
+
+# selected <- function(x)attr(x,"selected")
+
+#' get or set the group of an \code{svq}
+#' @export
 group <- function(x)attr(x,"group")
+
+#' @rdname group
+#' @export
+'group<-' <- function(x,value) structure(x, group = value)
+
 data <- function(x)attr(x,"data")
 
 #' s3 generic to list the choices in a survey or question

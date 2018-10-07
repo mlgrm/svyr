@@ -1,9 +1,11 @@
 labelize <- function(x) UseMethod("labelize",x)
 
-labelize.list <- function(s){
-  s <- preserve(s,function(x)lapply(x,labelize))
-  s
-}
+labelize.svy <- 
+labelize.list <- 
+  function(s){
+    s <- preserve(s,function(x)lapply(x,labelize))
+    s
+  }
 
 labelize.svq <- function(q){
   switch(type(q),
