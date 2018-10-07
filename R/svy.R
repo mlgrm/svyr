@@ -20,29 +20,15 @@
 svy <- function(dat = kobo_data(),
                 form = kobo_form(),
                 group = NULL) {
-  if(is.na(dat)) return(NULL)
+  if(length(dat)==1 && is.na(dat)) return(NULL)
   dat %<>%
-    as_tibble.odk_data %>%
+    as_tibble %>%
     svq.group(node = form, group = group) %>%
     as_tibble(validate = FALSE) %>%
-    structure(class = c("svy", class(tibble())))
-}
-
-#' S3 generic for converting odk data in it's native json format to a tibble
-#as_tibble <- function(x,...)UseMethod("as_tibble", x)
-
-as_tibble.odk_data <- function(d){
-  Reduce(union, lapply(d,names)) %>% # all names that appear in any instance
-    sapply(function(n){
-      qd <- sapply(d,function(i)
-        if (n %in% names(i)) i[[n]] else NA_character_, simplify = FALSE
-      )
-      if(all(sapply(qd,is.character))) qd <- unlist(qd)
-      qd
-    }, simplify = F
-    ) %>%
-
-    as_tibble(validate = FALSE)
+    structure(class = c("svy", class(tibble())), 
+              node=form, 
+              languages=languages(s)
+    )
 }
 
 #' a pseudo generic for doing dispatch on survey questions.
@@ -53,7 +39,7 @@ svq <- function(dat, node, group){
   )(dat, node, group) %>%
   structure(node = node,
             group = group,
-            class = class(c("svq",class(dat))))
+            class = c("svq",class(dat)))
 }
 
 svq.group <- function(dat, node, group){
@@ -62,24 +48,22 @@ svq.group <- function(dat, node, group){
   if(node$type!="survey") group <- paste(c(group, node$name), collapse = "/")
 
   node$children %>%
-    lapply(function(qn)
-      if (qn$type != "group"){
-        # data becomes a single character vector for individual questions
-        cn <- paste(c(group, qn$name), collapse = "/")
-        if(! cn %in% colnames(dat)){
+    lapply(function(qn) # for each child in node
+      if (qn$type != "group"){ # if it's not a group, process it as a svq
+        cn <- paste(c(group, qn$name), collapse = "/") # column name
+        if(! cn %in% colnames(dat)){ # there is no data with that name
           warning("question \"", cn, "\" not found in data, filling with NA")
-          dat <- rep(NA, NROW(dat))
+          dat <- rep(NA, NROW(dat)) # in this scope, dat become a single col
         } else {
-          dat %<>%
-            getElement(cn) %>%
-            # as.character %>%
-            svq(qn, group)
+          dat %<>% 
+            getElement(cn) %>% # dat becomes the one column in dat
+            svq(qn, group) # process as a question
         }
         dat %<>%
           structure(node = qn, group = group) %>% # add svg attributes
           list %>% # protect in a list
           structure(names = cn) # name the element in the list by the column
-      } else svq(dat, qn, group)) %>% # sub-groups get passed in again. 
+      } else svq(dat, qn, group)) ->.#%>% # sub-groups get passed in again. 
     do.call(c, .)
 }
 
@@ -87,10 +71,12 @@ svq.survey <- svq.group
 
 # repeat is a reserved word and make.names adds the terminal dot
 svq.repeat. <- function(dat, node, group){
-  dat %>%
-    structure(.,class = c("odk_data",class(.))) %>% 
+  stopifnot(is.list(dat))
+  dat[!sapply(dat,is.null)] %<>%
+    lapply(structure, class="odk_data") %>% 
     lapply(svy, form = node, group = group) %>%
     structure(node = node, group = group)
+  dat
 }
 
 svq.select.all.that.apply <- function(dat, node, group){

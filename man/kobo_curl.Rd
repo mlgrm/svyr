@@ -5,8 +5,12 @@
 \title{connect to the kobo api server and return the connection}
 \usage{
 kobo_curl(endpoint, dat = NULL, method = "GET", options = list(),
-  headers = list(), server = getOption("koboServer"),
+  form = list(), headers = list(), server = getOption("koboServer"),
   token = getOption("koboToken"))
+}
+\arguments{
+\item{endpoint}{a string containing the suffix of the desired api url
+(after \code{https://<kobocat-server>/api/v1/})}
 }
 \description{
 connect to the kobo api server and return the connection

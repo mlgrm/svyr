@@ -1,8 +1,9 @@
-library(dplyr)
-library(dbplyr)
-library(DBI)
-library(RPostgres)
-
+# library(dplyr)
+# library(dbplyr)
+# library(DBI)
+# library(RPostgres)
+# 
+#' access or set the default database connection
 connection <- function(host=getOption("svyDBHost"),
                     user=getOption("svyDBUser"),
                     password=getOption("svyDBPassword"),
@@ -11,8 +12,8 @@ connection <- function(host=getOption("svyDBHost"),
   # if the default connection has not been set up or has expired,
   # set it up (again)
   if(!("svyDBConnection" %in% names(options()) &&
-       dbIsValid(getOption("svyDBConnection")))){
-    options(svyDBConnection=dbConnect(Postgres(),
+       DBI::dbIsValid(getOption("svyDBConnection")))){
+    options(svyDBConnection=DBI::dbConnect(RPostgres::Postgres(),
                                       host=host,
                                       user=user,
                                       password=password,
@@ -23,14 +24,33 @@ connection <- function(host=getOption("svyDBHost"),
   getOption("svyDBConnection")
 }
 
+#' run an sql send/get query
+#' 
+#' \code{doSQL} and \code{getSQL} are just wrapper functions for 
+#' \code{dbSendQuery} and \{dbGetQuery} using the default \code{connection()}.
+#' 
+#' @param statement a string containing a valid SQL command
+#' @param ... optional parameters to pass on to \code{db(Send|Get)query}
+#' 
+#' @rdname sql-wrappers
+#' 
+#' @export
 doSQL <- function(statement,...)
   dbClearResult(
     dbSendQuery(connection(),statement, ...)
   )
 
+#' @rdname sql-wrappers
+#' @export
 getSQL <- function(statement,...)
   dbGetQuery(connection(),statement,...)
 
+#' set/get the current default schema of a database connection
+#' 
+#' @param name string conntaining the schema
+#' 
+#' @rdname schema
+#' @export
 setSchema <- function(name=getOption("svyDBSchema"),con=connection()){
   message("checking if schema exists, creating otherwise...")
   suppressMessages(doSQL(paste("create schema if not exists",
@@ -39,17 +59,33 @@ setSchema <- function(name=getOption("svyDBSchema"),con=connection()){
   doSQL(paste("set search_path to",name))
 }
 
+#' @rdname schema
+#' @export
 getSchema <- function()getSQL("show search_path")$search_path
 
-push <- function(s,name=deparse(substitute(df),...),
-                 schema=getOption("svyDBSchema",NULL),
+push <- function(x,...)UseMethod("push",x)
+
+
+#' push a svy object up to the database
+push.svy <- function(s,name=deparse(substitute(s)),
+                 schema=
+                   getOption("svyDBSchema"),
                  indexes=NULL,
                  overwrite=FALSE,
                  ...){
-  # if(is.svy){
-  # s <- flatten(s)
-  # }
-  db.names <- make.sql.names(sapply(names(s),function(n)
+  stopifnot(!is.null(shema))
+  
+  # use internal names if possible
+  db.names <-
+    names %>% 
+    laply(function(n)if(is.null(name(s[[n]]))) n else name(s[[n]])) %>% 
+    make.sql.names
+  
+  s_names <- tibble(odk=names(s),sql=db.names,label=labels(s))
+  
+  s_choices <- choices(s)
+    
+    make.sql.names(sapply(names(s),function(n)
     if(!is.null(name(s[[n]])))name(s[[n]]) else n))
 
     # sapply(s,function(e){

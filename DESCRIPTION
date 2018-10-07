@@ -9,14 +9,15 @@ Description: More about what it does (maybe more than one line)
 Depends: 
     R (>= 3.1.0),
     magrittr,
-    dplyr
+    plyr
 Imports:
     curl,
     jsonlite,
     xlsx,
     xml2,
     plyr,
-    dplyr
+    dplyr,
+    purrr
 License: gpl-3
 Encoding: UTF-8
 LazyData: true

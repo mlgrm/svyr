@@ -1,15 +1,27 @@
 library(plyr)
 library(dplyr)
 
+#' @export
 node <- function(x)attr(x,"node")
-name <- function(x,use.node=TRUE){
+
+#' @export
+name <- function(x, use.node = TRUE, empty.string = FALSE){
   if(use.node) x <- node(x)
-  x$name
+  if(empty.string && is.null(x$name)) "" else x$name
 }
-type <- function(x,use.node=TRUE){
+
+#' @export
+names.svy <- function(s)laply(s, name, empty.string = TRUE)
+
+#' @export
+type <- function(x, use.node=TRUE, empty.string = FALSE){
   if(use.node) x <- node(x)
-  x$type
+  if(empty.string && is.null(x$type)) "" else x$type
 }
+#' @export
+types <- function(s)laply(s, type, empty.string = TRUE)
+
+#' @export
 label <- function(x,use.node=TRUE){
   if(use.node) node <- node(x) else node <- x
   lbl <- if(is.list(node$label))
@@ -21,8 +33,22 @@ label <- function(x,use.node=TRUE){
   lbl
 }
 
+#' @export
+labels.svq <- function(x,use.node=TRUE){
+  if(use.node) node <- node(x) else node <- x
+  lbls <- sapply(node$children,label,use.node=FALSE)
+  names(lbls) <- sapply(node$children,name,use.node=FALSE)
+  lbls
+}
+
+#' @export
+labels.svy <- function(s)laply(s,label)
+
+
+#' @export
 class1 <- function(x)class(x)[1]
 
+#' @export
 preserve <- function(x,fun,...) UseMethod("preserve", x)
 
 # preserve.list <- function(
@@ -52,31 +78,30 @@ preserve.default <- function(
   x0
 }
 
-labels <- function(x,use.node=TRUE){
-  if(use.node) node <- node(x) else node <- x
-  lbls <- sapply(node$children,label,use.node=FALSE)
-  names(lbls) <- sapply(node$children,name,use.node=FALSE)
-  lbls
-}
-
 selected <- function(x)attr(x,"selected")
 group <- function(x)attr(x,"group")
 data <- function(x)attr(x,"data")
 
+#' s3 generic to list the choices in a survey or question
+#'
+#' @export
 choices <- function(x,...) UseMethod("choices",x)
-choices.svq <- function(x,...)sapply(node(x)$children,getElement,"name")
+
+#' @export
+choices.svq <- function(x,...)sapply(node(x)$children, getElement, "name")
+
+#' @export
 choices.svy <- function(x,...){
-  # browser()
-  x <- flatten(x)
-  x <- x[sapply(x,type) %in% c("select one","select all that apply")]
+  x <- x[sapply(x, type) %in% c("select one","select all that apply")]
   ldply(x,function(q){
-    data.frame(
-      choice=choices(q,...),
-      count=counts[[make.names(type(q))]](q),
-      label=labels(q))
-  },.id="qid")
+    tibble(
+      choice=choices(q),
+      labels=labels(q)
+    )  
+  },.id="name")
 }
 
+#' @export
 counts <- list(
   select.one=function(x)as.integer(table(x)),
   select.all.that.apply=function(x)colSums(x,na.rm=TRUE)

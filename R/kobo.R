@@ -1,7 +1,7 @@
-library(curl)
-library(jsonlite)
-library(xml2)
-library(xlsx)
+# library(curl)
+# library(jsonlite)
+# library(xml2)
+# library(xlsx)
 # source("R/local.R")
 
 # ls_projects <- function(...)
@@ -9,6 +9,10 @@ library(xlsx)
 
 
 #' connect to the kobo api server and return the connection
+#' 
+#' @param endpoint a string containing the suffix of the desired api url
+#' (after \code{https://<kobocat-server>/api/v1/})
+#' 
 kobo_curl <- function(endpoint,
                       dat = NULL,
                       method = "GET",
@@ -19,16 +23,16 @@ kobo_curl <- function(endpoint,
                       token = getOption("koboToken")){
   if (method != "GET") options$copypostfields <- method
   headers$Authorization <- paste("Token", token)
-  h <- new_handle()
+  h <- curl::new_handle()
   if(is.list(options) && length(options)>0) 
-    h %<>% handle_setopt(.list = options)
+    h %<>% curl::handle_setopt(.list = options)
   if(is.list(headers) && length(headers)>0) 
-    h %<>% handle_setheaders(.list = headers)
+    h %<>% curl::handle_setheaders(.list = headers)
   # kobo does not appear to like "GET" requests with forms in them
   if(method == "POST" && 
      is.list(form) && length(form)>0) 
-    h %<>% handle_setform(.list = form)
-  curl(paste0(getOption("koboServer"),"/api/v1/",endpoint), handle = h)
+    h %<>% curl::handle_setform(.list = form)
+  curl::curl(paste0(getOption("koboServer"),"/api/v1/",endpoint), handle = h)
 }
 
 #' retrieve a list of all a user's projects from a kobo server
@@ -85,20 +89,21 @@ kobo_data <- function(formid = getOption("koboID"),
   if(raw) res else as_tibble(res)
 }
 
-kobo_submit <- function(file,
-                        formid = getOption("koboID"),
-                        server = getOption("koboServer"),
-                        token = getOption("koboToken")){
-  system(
-    sprintf(
-      paste("curl -X POST",
-             "-F xml_submission_file=@%s",
-             "%s/api/v1/submissions",
-             "-H \"Authorization: Token %s\""
-      ),
-      file, server, token)
-  )
-}
+# kobo_submit <- function(file,
+#                         formid = getOption("koboID"),
+#                         server = getOption("koboServer"),
+#                         token = getOption("koboToken")){
+#   system(
+#     sprintf(
+#       paste("curl -X POST",
+#              "-F xml_submission_file=@%s",
+#              "%s/api/v1/submissions",
+#              "-H \"Authorization: Token %s\""
+#       ),
+#       file, server, token)
+#   )
+# }
+# 
 
 kobo_submit <- function(file,
                         formid = getOption("koboID"),
@@ -107,9 +112,6 @@ kobo_submit <- function(file,
   con <- kobo_curl(paste0("submissions"),
                    method = "POST",
                    form = list(xml_submission_file=form_file(file))
-  )
-  res <- tryCatch(readLines(con),
-                  error=identity
   )
   close(con)
   res
