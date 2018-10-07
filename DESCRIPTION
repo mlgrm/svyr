@@ -17,7 +17,8 @@ Imports:
     xml2,
     plyr,
     dplyr,
-    purrr
+    purrr,
+    googledrive
 License: gpl-3
 Encoding: UTF-8
 LazyData: true
