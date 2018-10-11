@@ -28,9 +28,12 @@ type <- function(x, use.node=TRUE, empty.string = FALSE){
 types <- function(s)laply(s, type, empty.string = TRUE)
 
 #' @export
-label <- function(x, lang=getOption("svyLang", "English"), use.node = TRUE){
+label <- function(x, 
+                  lang = if(is.null(languages(x))) NULL else 
+                    getOption("svyLang", "English"), 
+                  use.node = TRUE){
   if(use.node) node <- node(x) else node <- x
-  if(is.list(node$label)){ # if there is more than one label
+  if(length(node$label) > 1){ # if there is more than one label
     i <- match(tolower(lang), tolower(names(node$label))) # ignore caps
     
     if(is.na(i)) stop("language ", lang, "not available. ", 
@@ -52,7 +55,10 @@ label <- function(x, lang=getOption("svyLang", "English"), use.node = TRUE){
 }
 
 #' @export
-labels.svq <- function(x,use.node=TRUE){
+labels.svq <- function(x, 
+                       lang = if(is.null(languages(x))) NULL else 
+                         getOption("svyLang", "English"),
+                       use.node = TRUE){
   if(use.node) node <- node(x) else node <- x
   lbls <- sapply(node$children,label,use.node=FALSE)
   names(lbls) <- sapply(node$children,name,use.node=FALSE)
@@ -126,11 +132,22 @@ copy_atts <- function(to, from, atts=getOption("svyAttrIncl",
 
 #' get or set the group of an \code{svq}
 #' @export
-group <- function(x)attr(x,"group")
+group <- function(x, empty.string = FALSE)
+  if(empty.string && is.null(attr(x,"group"))) "" else attr(x,"group")
 
 #' @rdname group
 #' @export
 'group<-' <- function(x,value) structure(x, group = value)
+
+groups <- function(x)laply(x,group, empty.string = TRUE)
+
+# print the db_type of a svq
+db_type <- function(q)attr(q,"db_type")
+
+#' set the \code{db_type} of an array
+#'
+#' warning: \code{db_type} does no checking 
+'db_type<-' <- function(x, value) structure(x, db_type = value)
 
 data <- function(x)attr(x,"data")
 
@@ -144,13 +161,15 @@ choices.svq <- function(x,...)sapply(node(x)$children, getElement, "name")
 
 #' @export
 choices.svy <- function(x,...){
-  x <- x[sapply(x, type) %in% c("select one","select all that apply")]
-  ldply(x,function(q){
-    tibble(
-      choice=choices(q),
-      labels=labels(q)
-    )  
-  },.id="name")
+  x <- x[,laply(x, type) %in% c("select one","select all that apply")]
+  as_tibble(
+    ldply(x,function(q){
+      tibble(
+        choice=choices(q),
+        labels=labels(q)
+      )  
+    },.id="name")
+  )
 }
 
 #' @export

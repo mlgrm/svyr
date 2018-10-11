@@ -34,9 +34,15 @@ as_tibble.odk_data <- function(dat){
 }
 
 #' S3 generic for converting a svq into a tibble
-
 as_tibble.svq <- function(x)
   switch( make.names(type(x)),
-    repeat. = bind_rows(x[!sapply(x,is.null)],.id='index'),
+    repeat. = {
+      names(x) <- 1:length(x)
+      x <- llply(x[!laply(x,is.null)],as_tibble)
+      suppressWarnings(bind_rows(x,.id='instance'))
+      },
     as_tibble(structure(x, class=class(x)[-1]))
   )
+
+as_tibble.svy <- function(s)
+  tibble::as_tibble(structure(s, class = class(s)[-1]))

@@ -35,15 +35,15 @@ connection <- function(host=getOption("svyDBHost"),
 #' @rdname sql-wrappers
 #' 
 #' @export
-doSQL <- function(statement,...)
+doSQL <- function(statement, con = connection(), ...)
   dbClearResult(
-    dbSendQuery(connection(),statement, ...)
+    dbSendQuery(con, statement, ...)
   )
 
 #' @rdname sql-wrappers
 #' @export
-getSQL <- function(statement,...)
-  dbGetQuery(connection(),statement,...)
+getSQL <- function(statement, con = connection(), ...)
+  dbGetQuery(con, statement, ...)
 
 #' set/get the current default schema of a database connection
 #' 
@@ -65,68 +65,254 @@ getSchema <- function()getSQL("show search_path")$search_path
 
 push <- function(x,...)UseMethod("push",x)
 
-
 #' push a svy object up to the database
-push.svy <- function(s,name=deparse(substitute(s)),
-                 schema=
-                   getOption("svyDBSchema"),
-                 indexes=NULL,
-                 overwrite=FALSE,
-                 ...){
-  stopifnot(!is.null(shema))
-  
-  # use internal names if possible
-  db.names <-
-    names %>% 
-    laply(function(n)if(is.null(name(s[[n]]))) n else name(s[[n]])) %>% 
-    make.sql.names
-  
-  s_names <- tibble(odk=names(s),sql=db.names,label=labels(s))
-  
-  s_choices <- choices(s)
-    
-    make.sql.names(sapply(names(s),function(n)
-    if(!is.null(name(s[[n]])))name(s[[n]]) else n))
-
-    # sapply(s,function(e){
-    #   if(!is.null(group(e))) paste(paste(group(e),collapse="/"),name(e)) else
-    #     name(e)
-    # }))
-  # if(make.map)
-  #   map <- data.frame(name=names(s),
-  #                   db.name=db.names,
-  #                   type=sapply(s,type),
-  #                   label=sapply(s,label))
-  names(s) <- db.names
-
-  # postgres does not appear to like factors
-  s <- as.data.frame(lapply(s,function(x)if(is.factor(x))levels(x)[x] else x))
-
-  # connect(...)
-  con <- connection()
-  suppressWarnings(doSQL(paste("create schema if not exists",
-                               getOption("svyDBSchema"))))
-  doSQL(paste("set search_path to",getOption("svyDBSchema")))
-  dbWriteTable(con,s,
-          name=name,
-          overwrite=overwrite,
-          indexes=indexes,
-          ...
+#' 
+#' @param s a \code{svy} object
+#' @param name cannonical, unique survey name.  by convention:
+#' <project-id>_<project-name>[_<survey-name>].
+#' @indexes ignored for now
+#' @overwrite whether to overwrite existing tables
+#' @con a \code{PqConnection} to the survey database
+#' 
+#' Push data and metadata of the survey up to the server.  The schema  
+#' takes the name of the survey and contains three tables: 
+#'  * instance, containing the collected data with one column per question 
+#'  * question, containing the form structure, including group information, 
+#'  name information, node, type and labels, one row per question
+#'  * choice, containing the choices for multiple choice questions, including
+#'  question, name, and labels, one row per question choice.
+#'  
+#'  @return TRUE for success, FALSE otherwise
+#'  
+#'  @export
+push.svy <- function(s, 
+                     name = getOption("svyName", 
+                                        getOption("svyProject")),
+                     prefix = NULL,
+                     indexes=NULL,
+                     overwrite=FALSE,
+                     con = connection(),
+                     ...){
+  # a table with all the form data
+  question <- tibble(
+      question = make.sql.names(names(tb)),
+      group = groups(s),
+      name = names(s),
+      type = types(s),
+      node = node(s)
   )
-  # if(make.map){
-  #   copy_to(con,map,
-  #         name=paste(name,"map",sep="_"),
-  #         temporary=FALSE,
-  #         overwrite=overwrite,
-  #         indexes=list("db.name"),
-  #         ...
-  #   )
-  #   m <- tbl(con,paste(name,"map",sep="_"))
-  # } else m <- NULL
-  t <- tbl(con,name)
-  #dbDisconnect(getOption("svyDBConnection"))
-  invisible(list(data=t,map=m))
+  
+  if(is.null(languages(s))){
+    question %<>% bind_cols(
+      label = labels(s))
+  } else {
+    question %<>% bindcols(
+      languages(s) %>% 
+        llply(function(l) labels(s,l)) %>% 
+        structure(names = paste0("label::",languages(s)))
+    )
+  }
+  
+  push(question, prefix)
+
+  # a table with all the choices
+  choice <- s[types(s) %in% c( # just the multiple choice svqs
+    "select one",
+    "select all that apply"
+  )] %>%
+    ldply(function(q){
+      df <- tibble(
+        question = name(q),
+        choice = {
+          c <- choices(q)
+          if(Hmisc::all.is.numeric(c)) as.integer(c) else c
+        }
+      )
+      if(is.null(languages(s))){ # if monolingual
+        df %<>% bind_cols(
+          label = labels(q))
+      } else { # if multilingual
+        df %<>% bindcols(
+          languages(s) %>% 
+            llply(function(l)labels(q,l)) %>% 
+            structure(names = paste0("label::",languages(s)))
+        )
+      }
+      df
+    })
+  push(choice, prefix = prefix)
+  
+  # rosters, if any
+  for(q in s[types(s)=="repeat"])
+    q %>% 
+    as_tibble %>% # rbind all the svys in q
+    list(q[!laply(q,is.null)][[1]]) %>% debug_pipe %>% # wrap it in a list with the first svy (has the metadata)
+    mlply(copy_atts) %>% # copy attributes from the first svy to to new svqs
+    as_tibble %>% # glue it all together
+    structure(., class = c("svy", class(.))) %>% # call it a svy for dispatch
+    push("roster", name(q)) # push it up to the database
+  
+  instance <- db_format(s, prefix)
+  
+  dbCreateTable(connection(),paste())
+  
+  
+
 }
+
+push.data.frame <- function(df,
+                            prefix = NULL,
+                            name = paste0(
+                              c(prefix, deparse(substitute(df))),
+                              collapse = "_"
+                              ),
+                            con = connection(),
+                            modify = FALSE){
+  if( ! modify && 
+     ! identical(make.sql.names(names(df)),names(df)))
+    stop("some names not allowed, declining to fix.") else
+      names(df) <- make.sql.names(df)
+  RPostgres::dbWriteTable(con, name, df)
+}
+
+db_upload <- function(x, ...)UseMethod("db_upload", x)
+
+db_upload.svy <- function(s, 
+                          prefix = NULL,
+                          con = connection()){
+  # a table with all the form data
+  question <- tibble(
+    question = make.sql.names(names(tb)),
+    group = groups(s),
+    name = names(s),
+    type = types(s),
+    node = node(s)
+  )
+  
+  # a table with all the choices
+  choice <- choices(s)
+  choice <- cbind(question = question$question[match(choice$name,names(s))],
+                  choice)
+  choice$name <- NULL
+  if(Hmisc::all.is.numeric(choice$choice))
+    choice$choice %<>% as.integer %>% structure(db_type = "integer")
+  
+  instance <- db_format(s, prefix)
+  
+  dbCreateTable(connection(),paste())
+
+}
+
+get_type <- function(cl){ # cycle through classes until we get a hit or fail
+  switch(
+    cl[1],
+    POSIXct = "timestamp",
+    POSIXt = "timestamp",
+    integer = "integer",
+    character = "text",
+    factor = "text",
+    matrix = "text[]",
+    logical = "bool",
+    list = "text",
+    if(length(cl)>1) get_type(cl[-1]) 
+    )
+}
+
+# db_upload.tbl <- function(tb, 
+#                           name = deparse(substitute(tb)),
+#                           con = connection()
+#                           ){
+#   tb <- llply(tb, function(col){
+#     if(!is.null(db_type(col))) col else
+#       db_type(col) <- get_type(col)
+#       )
+#   })
+# }
+
+# prepare a \code{sv(q|y)} for uploading
+db_format <- function(x, ...)UseMethod("db_format", x)
+
+#' prepare \code{svy} a data column for insertion in a database
+db_format.svq <- function(q)
+  switch( # convert the columns for some types
+    make.names(type(q)),
+    repeat. = laply(q,length),
+    select.all.that.apply = aaply(q,.margins = 1, function(r)
+      paste(names(r)[r], collapse = " ")),
+    geopoint = aaply(q, .margins = 1, paste, collapse = " "),
+    q
+  )
+
+db_format.svy <- function(s){
+  t <- s %>% 
+    llply(db_format) %>% 
+    as_tibble %>% 
+    db_format %>% 
+    structure(
+      names = ifelse(names(s)!="", 
+              names(s), 
+              names(as_tibble(s)) %>% 
+                sub("^.*/", "", .)
+      ) %>% make.sql.names
+    )
+}
+
+db_format.data.frame <- function(df){
+  structure(df, names = names(df) %>% make.sql.names) 
+}
+
+push.tbl_df <- function(df){
+  
+}
+  
+#   
+#   
+#   
+#   
+#   
+#     
+#     make.sql.names(sapply(names(s),function(n)
+#     if(!is.null(name(s[[n]])))name(s[[n]]) else n))
+# 
+#     # sapply(s,function(e){
+#     #   if(!is.null(group(e))) paste(paste(group(e),collapse="/"),name(e)) else
+#     #     name(e)
+#     # }))
+#   # if(make.map)
+#   #   map <- data.frame(name=names(s),
+#   #                   db.name=db.names,
+#   #                   type=sapply(s,type),
+#   #                   label=sapply(s,label))
+#   names(s) <- db.names
+# 
+#   # postgres does not appear to like factors
+#   s <- as.data.frame(lapply(s,function(x)if(is.factor(x))levels(x)[x] else x))
+# 
+#   # connect(...)
+#   con <- connection()
+#   suppressWarnings(doSQL(paste("create schema if not exists",
+#                                getOption("svyDBSchema"))))
+#   doSQL(paste("set search_path to",getOption("svyDBSchema")))
+#   dbWriteTable(con,s,
+#           name=name,
+#           overwrite=overwrite,
+#           indexes=indexes,
+#           ...
+#   )
+#   # if(make.map){
+#   #   copy_to(con,map,
+#   #         name=paste(name,"map",sep="_"),
+#   #         temporary=FALSE,
+#   #         overwrite=overwrite,
+#   #         indexes=list("db.name"),
+#   #         ...
+#   #   )
+#   #   m <- tbl(con,paste(name,"map",sep="_"))
+#   # } else m <- NULL
+#   t <- tbl(con,name)
+#   #dbDisconnect(getOption("svyDBConnection"))
+#   invisible(list(data=t,map=m))
+# }
 
 # raw applies to plain data.frames, so the attributes are not checked
 make.sql.names <- function(
@@ -134,7 +320,7 @@ make.sql.names <- function(
   if(remove.group)
     ns <- sub(sprintf("^.*%s",group.delimiter),"",ns)
   ns <- tolower(ns)
-  ns <- ifelse(ns %in% tolower(.SQL92Keywords), paste0(ns,"_"),ns)
+  ns <- ifelse(ns %in% tolower(DBI::.SQL92Keywords), paste0(ns,"_"),ns)
   ns <- gsub("[^A-z0-9_]+","_",ns)
   i <- 0
   repeat{

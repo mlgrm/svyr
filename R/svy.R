@@ -1,4 +1,4 @@
-#' create a svy object from odk's native form and data objects
+#' create a svy object
 #'
 #' @description
 #' `svy()` is a [tibble()] with one element for each question containing the
@@ -11,12 +11,15 @@
 #' @param group this is only used when called on a roster within a group.
 #' @export
 #' @examples
-#' \dontrun{
 #' use the default functions to retrieve the data from a kobo server
+#' \dontrun{
 #' s <- svy()
+#' }
 #' load a svy from local data:
+#' \dontrun{
 #' s <- svy(node = jsonlite::fromJSON("data/form.json"),
 #' dat = jsonlite::fromJSON("data/data.json"))
+#' }
 svy <- function(dat = kobo_data(),
                 form = kobo_form(),
                 group = NULL) {
@@ -31,15 +34,16 @@ svy <- function(dat = kobo_data(),
     )
 }
 
-#' a pseudo generic for doing dispatch on survey questions.
+#' a pseudo generic for creating \code{svq} objects.
 svq <- function(dat, node, group){
   get0(paste("svq", make.names(node$type),sep = "."),
        mode = "function",
        ifnotfound = svq.default
   )(dat, node, group) %>%
-  structure(node = node,
+  structure(., 
+            node = node,
             group = group,
-            class = c("svq",class(dat)))
+            class = c("svq",class(.)))
 }
 
 svq.group <- function(dat, node, group){
@@ -54,12 +58,9 @@ svq.group <- function(dat, node, group){
         if(! cn %in% colnames(dat)){ # there is no data with that name
           warning("question \"", cn, "\" not found in data, filling with NA")
           dat <- rep(NA, NROW(dat)) # in this scope, dat become a single col
-        } else {
-          dat %<>% 
-            getElement(cn) %>% # dat becomes the one column in dat
-            svq(qn, group) # process as a question
-        }
+        } else dat %<>% getElement(cn) # dat becomes the one column in dat
         dat %<>%
+          svq(qn, group) %>%  # process as a question
           structure(node = qn, group = group) %>% # add svg attributes
           list %>% # protect in a list
           structure(names = cn) # name the element in the list by the column
@@ -101,7 +102,7 @@ svq.decimal <- function(dat, ...) as.numeric(dat)
 svq.range <- function(x, ...)
   if(x %>% as.numeric %% 1 == 0 %>% all(na.rm = T))
     as.integer(x) else as.numeric(x)
-svq.note <- function(dat, ...)rep('',nrow(dat))
+svq.note <- function(dat, ...)rep('', NROW(dat))
 svq.geopoint <- function(dat, node, group){
   dat %>%
     strsplit(" ") %>%
@@ -114,8 +115,10 @@ svq.geopoint <- function(dat, node, group){
     )))
 }
 
-svq.start <- svq.end <-
-  svq.dateTime <- function(dat,...)kobo_time_parser_UTC(dat)
+svq.start <- 
+  svq.end <-
+  svq.dateTime <- 
+  function(dat,...)kobo_time_parser_UTC(dat)
 
 svq.today <- svq.date <- function(dat,...) as.Date(dat)
 
