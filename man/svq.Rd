@@ -2,10 +2,10 @@
 % Please edit documentation in R/svy.R
 \name{svq}
 \alias{svq}
-\title{a pseudo generic for doing dispatch on survey questions.}
+\title{a pseudo generic for creating \code{svq} objects.}
 \usage{
 svq(dat, node, group)
 }
 \description{
-a pseudo generic for doing dispatch on survey questions.
+a pseudo generic for creating \code{svq} objects.
 }

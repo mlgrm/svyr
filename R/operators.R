@@ -29,7 +29,6 @@ compose.default <- base::'%*%'
   if(missingj) j <- 1:ncol(x)
   y <- preserve(x,function(a){
     a <- as.data.frame(a)
-    browser()
     a <- a[i,j]
     a <- as_tibble(a, validate = FALSE) 
   })

@@ -5,9 +5,9 @@
 \alias{getSQL}
 \title{run an sql send/get query}
 \usage{
-doSQL(statement, ...)
+doSQL(statement, con = connection(), ...)
 
-getSQL(statement, ...)
+getSQL(statement, con = connection(), ...)
 }
 \arguments{
 \item{statement}{a string containing a valid SQL command}

@@ -2,7 +2,7 @@
 % Please edit documentation in R/svy.R
 \name{svy}
 \alias{svy}
-\title{create a svy object from odk's native form and data objects}
+\title{create a svy object}
 \usage{
 svy(dat = kobo_data(), form = kobo_form(), group = NULL)
 }
@@ -18,4 +18,15 @@ format.}
 \description{
 `svy()` is a [tibble()] with one element for each question containing the
 answers and all metadata in the attributes.
+}
+\examples{
+use the default functions to retrieve the data from a kobo server
+\dontrun{
+s <- svy()
+}
+load a svy from local data:
+\dontrun{
+s <- svy(node = jsonlite::fromJSON("data/form.json"),
+dat = jsonlite::fromJSON("data/data.json"))
+}
 }

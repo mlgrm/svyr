@@ -2,10 +2,10 @@
 % Please edit documentation in R/operators.R
 \name{\%*\%}
 \alias{\%*\%}
-\title{compose two or more functions (mainly for use in *apply functions)}
+\title{compose two or more functions (mainly for use in *apply and plyr functions)}
 \usage{
 f \%*\% g
 }
 \description{
-compose two or more functions (mainly for use in *apply functions)
+compose two or more functions (mainly for use in *apply and plyr functions)
 }

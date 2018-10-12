@@ -2,10 +2,10 @@
 % Please edit documentation in R/operators.R
 \name{[.svy}
 \alias{[.svy}
-\title{subset a survey}
+\title{extract or replace parts of a \code{svy} object}
 \usage{
 \method{[}{svy}(x, i, j, ...)
 }
 \description{
-subset a survey
+extract or replace parts of a \code{svy} object
 }

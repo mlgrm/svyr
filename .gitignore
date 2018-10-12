@@ -3,5 +3,5 @@ local/
 .Rproj.user/
 .RData
 .httr-oauth
-
+.Rhistory
 .Rproj.user

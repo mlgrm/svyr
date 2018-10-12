@@ -36,13 +36,27 @@ as_tibble.odk_data <- function(dat){
 #' S3 generic for converting a svq into a tibble
 as_tibble.svq <- function(x)
   switch( make.names(type(x)),
-    repeat. = {
-      names(x) <- 1:length(x)
-      x <- llply(x[!laply(x,is.null)],as_tibble)
-      suppressWarnings(bind_rows(x,.id='instance'))
-      },
     as_tibble(structure(x, class=class(x)[-1]))
   )
+
+#' collapse a repeat \code{svq} into a single \code{svy}
+#'
+#'@export
+collapse <- function(x){
+  if(type(x) != "repeat") stop("collapse is only applicable to repeat types")
+  names(x) <- 1:length(x)
+  x <- x[!laply(x,is.null)]
+  x %<>% 
+    llply(function(s)
+      llply(s, function(q)structure(q, class = class(q)[-1])) %>% as_tibble
+    ) %>% #debug_pipe %>%
+    bind_rows(.id = "instance") %>% #debug_pipe %>%
+    copy_atts(cbind(instance=1,x[[1]])) %>% #debug_pipe %>%
+    structure(., class = c("svy", class(.)))
+  x$instance %<>% as.integer
+  x
+}
+
 
 as_tibble.svy <- function(s)
   tibble::as_tibble(structure(s, class = class(s)[-1]))

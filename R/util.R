@@ -17,7 +17,7 @@ name <- function(x, use.node = TRUE, empty.string = FALSE){
 }
 
 #' @export
-names.svy <- function(s)laply(s, name, empty.string = TRUE)
+.names <- function(s)laply(s, name, empty.string = TRUE)
 
 #' @export
 type <- function(x, use.node=TRUE, empty.string = FALSE){
@@ -114,17 +114,15 @@ copy_atts <- function(to, from, atts=getOption("svyAttrIncl",
                                                       "languages"
                                                       )
                                                     ),
-                      recursive=TRUE){
-  # first copy childrens' attriibutes, then our own
-  if(recursive && is.list(to) && length(to)==length(from)){
-    for(n in names(to)) to[[n]] <- copy_atts(to[[n]],from[[n]])
-    # to <- llply(purrr::transpose(list(to = to, from = from)), function(l){
-    #   copy_atts(to = l$to, from = l$from, atts = atts)
-    # })
+                      recursive = TRUE){
+  # first copy childrens' attributes, then our own
+  if(recursive && is.list(to)){
+    for(n in intersect(names(to), names(from))) 
+      to[[n]] <- copy_atts(to[[n]], from[[n]])
   }
-  atts <- atts[atts %in% attributes(from)]
+  atts <- atts[atts %in% names(attributes(from))]
   attributes(to)[atts] <- attributes(from)[atts]
-  if(class(to)[1]!=class(from)[1]) class(to) <- c(class(from)[1], class(to))
+  if(class(to)[1] != class(from)[1]) class(to) <- c(class(from)[1], class(to))
   to
 }
 

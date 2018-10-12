@@ -145,12 +145,16 @@ push.svy <- function(s,
   # rosters, if any
   for(q in s[types(s)=="repeat"])
     q %>% 
-    as_tibble %>% # rbind all the svys in q
-    list(q[!laply(q,is.null)][[1]]) %>% debug_pipe %>% # wrap it in a list with the first svy (has the metadata)
-    mlply(copy_atts) %>% # copy attributes from the first svy to to new svqs
-    as_tibble %>% # glue it all together
-    structure(., class = c("svy", class(.))) %>% # call it a svy for dispatch
-    push("roster", name(q)) # push it up to the database
+    # rbind all the svys in q
+    as_tibble %>% 
+    # copy attributes from the first svy to to new svqs
+    # adding a column to it to match the length, otherwise copy_atts 
+    # won't descend
+    copy_atts(cbind(1,q[!laply(q,is.null)][[1]])) %>% 
+    # call it a svy for dispatch
+    structure(., class = c("svy", class(.))) %>%
+    # push it up to the database
+    push("roster", name(q)) 
   
   instance <- db_format(s, prefix)
   
