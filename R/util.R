@@ -1,6 +1,3 @@
-library(plyr)
-library(dplyr)
-
 #' get or set the node of a \code{svq|svy}
 #' @export
 node <- function(x)attr(x,"node")
@@ -27,8 +24,11 @@ type <- function(x, use.node=TRUE, empty.string = FALSE){
 #' @export
 types <- function(s)laply(s, type, empty.string = TRUE)
 
+#' S3 method for extracting a \code{svq}'s label
+#'
+#' @importFrom xtable label
 #' @export
-label <- function(x, 
+label.svq <- function(x, 
                   lang = if(is.null(languages(x))) NULL else 
                     getOption("svyLang", "English"), 
                   use.node = TRUE){

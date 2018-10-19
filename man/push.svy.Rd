@@ -13,6 +13,24 @@
 
 \item{name}{cannonical, unique survey name.  by convention:
 <project-id>_<project-name>[_<survey-name>].}
+
+\item{indexes}{ignored for now}
+
+\item{overwrite}{whether to overwrite existing tables}
+
+\item{con}{a \code{PqConnection} to the survey database
+
+Push data and metadata of the survey up to the server.  The schema  
+takes the name of the survey and contains three tables: 
+ * instance, containing the collected data with one column per question 
+ * question, containing the form structure, including group information, 
+ name information, node, type and labels, one row per question
+ * choice, containing the choices for multiple choice questions, including
+ question, name, and labels, one row per question choice.
+ 
+ @return TRUE for success, FALSE otherwise
+ 
+ @export}
 }
 \description{
 push a svy object up to the database

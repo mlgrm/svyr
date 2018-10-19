@@ -1,14 +1,11 @@
-# library(dplyr)
-# library(dbplyr)
-# library(DBI)
-# library(RPostgres)
-# 
 #' access or set the default database connection
-connection <- function(host=getOption("svyDBHost"),
-                    user=getOption("svyDBUser"),
-                    password=getOption("svyDBPassword"),
-                    dbname=getOption("svyDBName"),
-                    schema=getOption("svyDBSchema")){
+#' 
+#' @export
+connection <- function(host = getOption("svyDBHost"),
+                       user=getOption("svyDBUser"),
+                       password=getOption("svyDBPassword"),
+                       dbname=getOption("svyDBName"),
+                       schema=getOption("svyDBSchema")){
   # if the default connection has not been set up or has expired,
   # set it up (again)
   if(!("svyDBConnection" %in% names(options()) &&
@@ -59,9 +56,11 @@ setSchema <- function(name=getOption("svyDBSchema"),con=connection()){
   doSQL(paste("set search_path to",name))
 }
 
+#' get the current schema(s)
+#'
 #' @rdname schema
 #' @export
-getSchema <- function()getSQL("show search_path")$search_path
+getSchema <- function() getSQL("show search_path")$search_path
 
 push <- function(x,...)UseMethod("push",x)
 
@@ -70,9 +69,9 @@ push <- function(x,...)UseMethod("push",x)
 #' @param s a \code{svy} object
 #' @param name cannonical, unique survey name.  by convention:
 #' <project-id>_<project-name>[_<survey-name>].
-#' @indexes ignored for now
-#' @overwrite whether to overwrite existing tables
-#' @con a \code{PqConnection} to the survey database
+#' @param indexes ignored for now
+#' @param overwrite whether to overwrite existing tables
+#' @param con a \code{PqConnection} to the survey database
 #' 
 #' Push data and metadata of the survey up to the server.  The schema  
 #' takes the name of the survey and contains three tables: 

@@ -14,4 +14,6 @@ getSchema()
 }
 \description{
 set/get the current default schema of a database connection
+
+get the current schema(s)
 }

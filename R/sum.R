@@ -1,6 +1,6 @@
-#' tools for summarizing data sets
-library(plyr)
-library(dplyr)
+# tools for summarizing data sets
+# library(plyr)
+# library(dplyr)
 
 
 summary <- function(x,...) UseMethod("summary", x)
