@@ -39,10 +39,15 @@ as_tibble.svq <- function(x)
     as_tibble(structure(x, class=class(x)[-1]))
   )
 
-#' collapse a repeat \code{svq} into a single \code{svy}
+#' S3 method to collapse a repeat \code{svq} into a single \code{svy}
 #'
-#'@export
-collapse <- function(x){
+#' internally, a \code{svq} of type \code{repeat} (roster) is just a list of
+#' \code{svy}s with the same \code{node} attribute.  This function rbinds
+#' those tibbles into a single survey.
+#' 
+#' @importFrom dplyr collapse
+#' @export
+collapse.svq <- function(x){
   if(type(x) != "repeat") stop("collapse is only applicable to repeat types")
   names(x) <- 1:length(x)
   x <- x[!laply(x,is.null)]

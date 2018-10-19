@@ -37,6 +37,7 @@ kobo_curl <- function(endpoint,
 
 #' retrieve a list of all a user's projects from a kobo server
 #'
+#' @export
 kobo_ls <- function(refresh = F,
                     cols = c("formid",
                              "description",
@@ -68,6 +69,9 @@ kobo_ls <- function(refresh = F,
   tb[cols]
 }
 
+#' retrieve a form from kobo
+#' 
+#' @export
 kobo_form <- function(formid = getOption("koboID"),
                       server = getOption("koboServer"),
                       token = getOption("koboToken")){
@@ -78,6 +82,7 @@ kobo_form <- function(formid = getOption("koboID"),
   res
 }
 
+#' retrieve data from kobo
 kobo_data <- function(formid = getOption("koboID"),
                       server = getOption("koboServer"),
                       token = getOption("koboToken"),
@@ -105,6 +110,9 @@ kobo_data <- function(formid = getOption("koboID"),
 # }
 # 
 
+#' submit an instance to the kobo server
+#' 
+#' @export
 kobo_submit <- function(file,
                         formid = getOption("koboID"),
                         server = getOption("koboServer"),

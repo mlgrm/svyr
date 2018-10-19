@@ -4,7 +4,7 @@
 \alias{label.svq}
 \title{S3 method for extracting a \code{svq}'s label}
 \usage{
-label.svq(x, lang = if (is.null(languages(x))) NULL else
+\method{label}{svq}(x, lang = if (is.null(languages(x))) NULL else
   getOption("svyLang", "English"), use.node = TRUE)
 }
 \description{
