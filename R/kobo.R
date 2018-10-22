@@ -13,6 +13,7 @@
 #' @param endpoint a string containing the suffix of the desired api url
 #' (after \code{https://<kobocat-server>/api/v1/})
 #' 
+#' @export
 kobo_curl <- function(endpoint,
                       dat = NULL,
                       method = "GET",
@@ -57,7 +58,7 @@ kobo_ls <- function(refresh = F,
   }else {
     con <- kobo_curl("forms")
     tb <- readLines(con, warn = F) %>%
-      fromJSON(simplifyVector = T) %>%
+      jsonlite::fromJSON(simplifyVector = T) %>%
       as_tibble %>%
       structure(opts=options()[c(
         "koboServer",
