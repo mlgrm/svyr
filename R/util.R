@@ -65,7 +65,8 @@ labels.svq <- function(x,
   lbls
 }
 
-#' get or set the languages of a survey
+#' get the languages of a survey
+#' 
 #' @export
 languages <- function(s){
   if(!is.null(attr(s, "languages"))) return(attr(s,"languages"))

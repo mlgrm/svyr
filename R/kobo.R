@@ -1,13 +1,3 @@
-# library(curl)
-# library(jsonlite)
-# library(xml2)
-# library(xlsx)
-# source("R/local.R")
-
-# ls_projects <- function(...)
-#   get.kobo.form.list(...)[c("formid","description","num_of_submissions")]
-
-
 #' connect to the kobo api server and return the connection
 #' 
 #' @param endpoint a string containing the suffix of the desired api url
@@ -77,7 +67,8 @@ kobo_form <- function(formid = getOption("koboID"),
                       server = getOption("koboServer"),
                       token = getOption("koboToken")){
   con <- kobo_curl(paste0("forms/",formid,"/form.json"))
-  res <- structure(readLines(con, warn = F) %>% fromJSON(simplifyVector = F),
+  res <- structure(readLines(con, warn = F) %>% 
+                     jsonlite::fromJSON(simplifyVector = F),
             class = "odk_form")
   close(con)
   res
@@ -89,27 +80,12 @@ kobo_data <- function(formid = getOption("koboID"),
                       token = getOption("koboToken"),
                       raw = TRUE){
   con <- kobo_curl(paste0("data/",formid))
-  res <- structure(readLines(con, warn = F) %>% fromJSON(simplifyVector = F),
+  res <- structure(readLines(con, warn = F) %>% 
+                     jsonlite::fromJSON(simplifyVector = F),
             class = "odk_data")
   close(con)
   if(raw) res else as_tibble(res)
 }
-
-# kobo_submit <- function(file,
-#                         formid = getOption("koboID"),
-#                         server = getOption("koboServer"),
-#                         token = getOption("koboToken")){
-#   system(
-#     sprintf(
-#       paste("curl -X POST",
-#              "-F xml_submission_file=@%s",
-#              "%s/api/v1/submissions",
-#              "-H \"Authorization: Token %s\""
-#       ),
-#       file, server, token)
-#   )
-# }
-# 
 
 #' submit an instance to the kobo server
 #' 
@@ -146,9 +122,9 @@ get.kobo.doc <- function(endpoint,
   system(cmd)
   dat <- tryCatch(
     switch(fmt,
-                csv=read.csv(of),
-                json=fromJSON(of, simplifyVector=simplifyVector),
-                xml=read_xml(of),
+                csv = read.csv(of),
+                json = jsonlite::fromJSON(of, simplifyVector=simplifyVector),
+                xml = read_xml(of),
                 xls={
                   n <- names(getSheets(of))
                   if(length(n)==1) read.xlsx(of) else

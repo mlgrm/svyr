@@ -68,7 +68,7 @@ push <- function(x,...)UseMethod("push",x)
 #' 
 #' @param s a \code{svy} object
 #' @param name cannonical, unique survey name.  by convention:
-#' <project-id>_<project-name>[_<survey-name>].
+#' <project-id>_<project-name>[__<survey-name>].
 #' @param indexes ignored for now
 #' @param overwrite whether to overwrite existing tables
 #' @param con a \code{PqConnection} to the survey database
@@ -85,8 +85,7 @@ push <- function(x,...)UseMethod("push",x)
 #'  
 #'  @export
 push.svy <- function(s, 
-                     name = getOption("svyName", 
-                                        getOption("svyProject")),
+                     name = getOption("svyDBSchema"),
                      prefix = NULL,
                      indexes=NULL,
                      overwrite=FALSE,

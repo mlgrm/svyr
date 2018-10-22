@@ -3,12 +3,12 @@
 \name{languages}
 \alias{languages}
 \alias{languages<-}
-\title{get or set the languages of a survey}
+\title{get the languages of a survey}
 \usage{
 languages(s)
 
 languages(x) <- value
 }
 \description{
-get or set the languages of a survey
+get the languages of a survey
 }

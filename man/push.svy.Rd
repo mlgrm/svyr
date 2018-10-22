@@ -4,15 +4,14 @@
 \alias{push.svy}
 \title{push a svy object up to the database}
 \usage{
-\method{push}{svy}(s, name = getOption("svyName",
-  getOption("svyProject")), prefix = NULL, indexes = NULL,
-  overwrite = FALSE, con = connection(), ...)
+\method{push}{svy}(s, name = getOption("svyDBSchema"), prefix = NULL,
+  indexes = NULL, overwrite = FALSE, con = connection(), ...)
 }
 \arguments{
 \item{s}{a \code{svy} object}
 
 \item{name}{cannonical, unique survey name.  by convention:
-<project-id>_<project-name>[_<survey-name>].}
+<project-id>_<project-name>[__<survey-name>].}
 
 \item{indexes}{ignored for now}
 
