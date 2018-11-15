@@ -5,14 +5,14 @@
 \alias{getSQL}
 \title{run an sql send/get query}
 \usage{
-doSQL(statement, con = connection(), ...)
+doSQL(..., con = connection())
 
-getSQL(statement, con = connection(), ...)
+getSQL(..., con = connection())
 }
 \arguments{
-\item{statement}{a string containing a valid SQL command}
-
 \item{...}{optional parameters to pass on to \code{db(Send|Get)query}}
+
+\item{statement}{a string containing a valid SQL command}
 }
 \description{
 run an sql send/get query

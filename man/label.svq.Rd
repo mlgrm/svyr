@@ -2,11 +2,11 @@
 % Please edit documentation in R/util.R
 \name{label.svq}
 \alias{label.svq}
-\title{S3 method for extracting a \code{svq}'s label}
+\title{S3 method for extracting a \code{svq}'s question label}
 \usage{
 \method{label}{svq}(x, lang = if (is.null(languages(x))) NULL else
   getOption("svyLang", "English"), use.node = TRUE)
 }
 \description{
-S3 method for extracting a \code{svq}'s label
+S3 method for extracting a \code{svq}'s question label
 }

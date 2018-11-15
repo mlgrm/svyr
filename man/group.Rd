@@ -5,7 +5,7 @@
 \alias{group<-}
 \title{get or set the group of an \code{svq}}
 \usage{
-group(x, empty.string = FALSE)
+group(x, empty_as_na = TRUE)
 
 group(x) <- value
 }

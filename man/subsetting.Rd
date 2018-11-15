@@ -2,10 +2,15 @@
 % Please edit documentation in R/operators.R
 \name{[.svy}
 \alias{[.svy}
+\alias{[.svq}
 \title{extract or replace parts of a \code{svy} object}
 \usage{
 \method{[}{svy}(x, i, j, ...)
+
+\method{[}{svq}(x, i, j, ...)
 }
 \description{
 extract or replace parts of a \code{svy} object
+
+extract a subset from a \code{svq} object
 }

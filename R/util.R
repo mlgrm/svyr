@@ -8,23 +8,23 @@ node <- function(x)attr(x,"node")
 
 
 #' @export
-name <- function(x, use.node = TRUE, empty.string = FALSE){
+name <- function(x, use.node = TRUE, empty_as_na = TRUE){
   if(use.node) x <- node(x)
-  if(empty.string && is.null(x$name)) "" else x$name
+  if(empty_as_na && is.null(x$name)) NA else x$name
 }
 
 #' @export
-.names <- function(s)laply(s, name, empty.string = TRUE)
+all_names <- function(s)laply(s, name, empty_as_na = TRUE)
 
 #' @export
-type <- function(x, use.node=TRUE, empty.string = FALSE){
+type <- function(x, use.node=TRUE, empty_as_na = TRUE){
   if(use.node) x <- node(x)
-  if(empty.string && is.null(x$type)) "" else x$type
+  if(empty_as_na && is.null(x$type)) NA else x$type
 }
 #' @export
-types <- function(s)laply(s, type, empty.string = TRUE)
+types <- function(s)laply(s, type, empty_as_na = TRUE)
 
-#' S3 method for extracting a \code{svq}'s label
+#' S3 method for extracting a \code{svq}'s question label
 #'
 #' @importFrom xtable label
 #' @export
@@ -33,52 +33,65 @@ label.svq <- function(x,
                     getOption("svyLang", "English"), 
                   use.node = TRUE){
   if(use.node) node <- node(x) else node <- x
-  if(length(node$label) > 1){ # if there is more than one label
+  if(is.list(node$label)){ # if it's a list, specify language
     i <- match(tolower(lang), tolower(names(node$label))) # ignore caps
-    
-    if(is.na(i)) stop("language ", lang, "not available. ", 
-                      "available languages:", 
+    if(is.na(i)){
+      warning("language ", lang, " not available. ", 
+                      "available languages: ", 
                       paste(names(node$label), collapse = ", "),
-                      "."
-    )
+                      ".")
+      return(NA)
+    }
     lbl <- node$label[[i]] # choose the matching language
   } else {
     # if there's no label, empty string, else the string
     if(is.null(node$label))
-      lbl <- "" else 
+      lbl <- NA else 
         lbl <- node$label
   }
-  # we can only get the question and answer if we got the whole datum
-  if(use.node && !is.null(type(x)) && type(x)=="select all that apply")
-    lbl <- paste(lbl,labels(x)[selected(x)],sep=":")
   lbl
 }
 
+#' @export
+has_label <- function(q, use.node = TRUE){
+  if(use.node) node <- node(q) else node <- q
+  ! is.null(node$label)
+}
+#' extract the choice labels of a multiple choice question in a language
 #' @export
 labels.svq <- function(x, 
                        lang = if(is.null(languages(x))) NULL else 
                          getOption("svyLang", "English"),
                        use.node = TRUE){
   if(use.node) node <- node(x) else node <- x
-  lbls <- sapply(node$children,label,use.node=FALSE)
+  lbls <- sapply(node$children, label.svq, lang = lang, use.node=FALSE)
   names(lbls) <- sapply(node$children,name,use.node=FALSE)
   lbls
 }
 
+has_labels <- function(q) 
+  any(laply(node(q)$children, has_label, use.node = FALSE))
+
 #' get the languages of a survey
+#' 
+#' @details if the language attribute is unset, languages will determine
+#' the languages from the svqs, set the attribute, and return the value
+#' 
+#' @return a character vector of the languages of the survey, or "default"
+#' if there are none
 #' 
 #' @export
 languages <- function(s){
-  if(!is.null(attr(s, "languages"))) return(attr(s,"languages"))
-  llply(s, function(x)names(node(x)$label)) %>% 
+  if(! is.null(attr(s, "languages"))) return(attr(s,"languages"))
+  attr(s, "languages") <- 
+    llply(s, function(x)names(node(x)$label)) %>% 
     unlist %>% 
-    unique
+    unique %>%
+    { if(is.null(.)) "default" else . }
+  attr(s, "languages")
 }
 
-#' @rdname languages
-#' @export
-'languages<-' <- function(x,value) structure(x, languages = value)
-
+#' extract all the question labels of a survey
 #' @export
 labels.svy <- function(s)laply(s,label)
 
@@ -89,15 +102,33 @@ class1 <- function(x)class(x)[1]
 #' perform an arbitrary function on an object, preserving some attributes 
 #' 
 #' @export
-preserve <- function(x,
+preserve <- function(x, ...)UseMethod("preserve")
+
+preserve.svq <- function(x, 
+                         fun, 
+                         atts = c("group","node"),
+                         ...){
+  x %>%
+    structure(., class = class(.)[-1]) %>% 
+    preserve(fun, atts = atts, ...) %>% 
+    structure(., class = c("svq", class(.)))
+}
+
+preserve.svy <- function(x,
+                         fun,
+                         atts = c("group", "node", "languages"),
+                         recursive = FALSE,
+                         ...){
+  x %>% 
+    structure(., class = class(.)[-1]) %>% 
+    preserve(fun, atts = atts, recursive = TRUE) %>% 
+    structure(., class = c("svy", class(.)))
+}
+
+preserve.default <- function(x,
                              fun,
-                             atts=getOption("svyAttrIncl",
-                                            c(
-                                              "group",
-                                              "node", 
-                                              "languages"
-                                            )
-                             ),
+                             atts,
+                             recursive = FALSE,
                              ...){
   x %>% 
     fun(...) %>% #debug_pipe %>%  
@@ -108,14 +139,7 @@ preserve <- function(x,
 #' 
 #' @export
 #' @rdname copy_atts
-copy_atts <- function(to, from, atts=getOption("svyAttrIncl", 
-                                                    c(
-                                                      "group",
-                                                      "node", 
-                                                      "languages"
-                                                      )
-                                                    ),
-                      recursive = TRUE){
+copy_atts <- function(to, from, atts, recursive = FALSE){
   # first copy childrens' attributes, then our own
   if(recursive && is.list(to)){
     for(n in intersect(names(to), names(from))) 
@@ -123,7 +147,7 @@ copy_atts <- function(to, from, atts=getOption("svyAttrIncl",
   }
   atts <- atts[atts %in% names(attributes(from))]
   attributes(to)[atts] <- attributes(from)[atts]
-  if(class(to)[1] != class(from)[1]) class(to) <- c(class(from)[1], class(to))
+  # if(class(to)[1] != class(from)[1]) class(to) <- c(class(from)[1], class(to))
   to
 }
 
@@ -131,17 +155,17 @@ copy_atts <- function(to, from, atts=getOption("svyAttrIncl",
 
 #' get or set the group of an \code{svq}
 #' @export
-group <- function(x, empty.string = FALSE)
-  if(empty.string && is.null(attr(x,"group"))) "" else attr(x,"group")
+group <- function(x, empty_as_na = TRUE)
+  if(empty_as_na && is.null(attr(x,"group"))) NA else attr(x,"group")
 
 #' @rdname group
 #' @export
 'group<-' <- function(x,value) structure(x, group = value)
 
-groups <- function(x)laply(x,group, empty.string = TRUE)
+groups <- function(x)laply(x,group, empty_as_na = TRUE)
 
 # print the db_type of a svq
-db_type <- function(q)attr(q,"db_type")
+db_type <- function(q)if(is.null(attr(q,"db_type"))) NA else attr(q, "db_type")
 
 #' set the \code{db_type} of an array
 #'

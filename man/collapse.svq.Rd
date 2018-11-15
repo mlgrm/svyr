@@ -4,7 +4,7 @@
 \alias{collapse.svq}
 \title{S3 method to collapse a repeat \code{svq} into a single \code{svy}}
 \usage{
-\method{collapse}{svq}(x)
+\method{collapse}{svq}(x, index = 1:NROW(x))
 }
 \description{
 internally, a \code{svq} of type \code{repeat} (roster) is just a list of

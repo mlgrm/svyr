@@ -1,12 +1,20 @@
+#' replace choice codes with labels
+#' 
+#' @export
 labelize <- function(x) UseMethod("labelize",x)
 
-labelize.svy <- 
-labelize.list <- 
+#' s3 method for class svy
+#' 
+#' @export
+labelize.svy <-  
   function(s){
     s <- preserve(s,function(x)lapply(x,labelize))
     s
   }
 
+#' s3 method for class svq
+#' 
+#' @export
 labelize.svq <- function(q){
   switch(type(q),
          "select one"={

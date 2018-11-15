@@ -2,7 +2,6 @@
 #' 
 #' @importFrom tibble as_tibble
 #' @export
-
 as_tibble.odk_data <- function(dat){
   names <- Reduce(union, lapply(dat,names))# all names that appear in any instance
     # sapply(function(n){ # for each name
@@ -30,10 +29,12 @@ as_tibble.odk_data <- function(dat){
       }
       col
     })
-    as_tibble(dat, validate = FALSE)
+    tibble::as_tibble(dat, validate = FALSE)
 }
 
 #' S3 generic for converting a svq into a tibble
+#' 
+#' @export
 as_tibble.svq <- function(x)
   switch( make.names(type(x)),
     as_tibble(structure(x, class=class(x)[-1]))
@@ -47,9 +48,9 @@ as_tibble.svq <- function(x)
 #' 
 #' @importFrom dplyr collapse
 #' @export
-collapse.svq <- function(x){
+collapse.svq <- function(x, index = 1:NROW(x)){
   if(type(x) != "repeat") stop("collapse is only applicable to repeat types")
-  names(x) <- 1:length(x)
+  names(x) <- index
   x <- x[!laply(x,is.null)]
   x %<>% 
     llply(function(s)
@@ -62,6 +63,21 @@ collapse.svq <- function(x){
   x
 }
 
-
+#' s3 method to convert a svy to a tibble
 as_tibble.svy <- function(s)
-  tibble::as_tibble(structure(s, class = class(s)[-1]))
+  tibble::as_tibble(structure(s, class = class(s)[-1]), validate = F)
+
+#' convert a svy to a dataframe, splitting matrices to multiple columns
+#' 
+as.data.frame.svy <- function(x, ...)
+  llply(names(x),function(n)
+    if(is.matrix(x[[n]])) 
+      structure(
+        as.data.frame(x[[n]]), 
+        names = paste(n, colnames(x[[n]]), sep = ":")
+      ) else if(is.list(x[[n]])) 
+        structure(data.frame(laply(x[[n]], NROW)), names = n) else
+        structure(data.frame(x[[n]]), names = n)
+  ) %>% dplyr::bind_cols()
+
+

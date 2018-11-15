@@ -4,8 +4,7 @@
 \alias{copy_atts}
 \title{copy some attributes from one object to another, recursively}
 \usage{
-copy_atts(to, from, atts = getOption("svyAttrIncl", c("group", "node",
-  "languages")), recursive = TRUE)
+copy_atts(to, from, atts, recursive = FALSE)
 }
 \description{
 copy some attributes from one object to another, recursively

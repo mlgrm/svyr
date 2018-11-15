@@ -25,9 +25,9 @@ svy <- function(dat = kobo_data(),
                 group = NULL) {
   if(length(dat)==1 && is.na(dat)) return(NULL)
   dat %<>%
-    as_tibble %>%
+    tibble::as_tibble() %>%
     svq.group(node = form, group = group) %>%
-    as_tibble(validate = FALSE) %>%
+    tibble::as_tibble(validate = FALSE) %>%
     structure(., class = c("svy", class(.)), 
               node=form, 
               languages=languages(.)
@@ -82,14 +82,12 @@ svq.repeat. <- function(dat, node, group){
 
 svq.select.all.that.apply <- function(dat, node, group){
   ch <- sapply(node$children, getElement, "name") # choice names
-  dat %>%
+  dat[is.na(dat)] <- ""
+  dat %>% #debug_pipe(expr = ! is.character(.)) %>% 
     strsplit(" ") %>% # the ith element is a vector of the ith element of dat
     ldply(function(r)ch %in% r) %>%
     as.matrix %>% 
     structure(dimnames=list(NULL,ch))
-    # lapply(function(r)1:length(node$children) %in% # r is the ith vector
-    #          match(r,sapply(node$children,getElement,"name"))) %>%
-    # do.call(rbind, .)
 }
 
 svq.select.one <- function(dat, node, group){

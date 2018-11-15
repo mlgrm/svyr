@@ -23,7 +23,7 @@ kobo_curl <- function(endpoint,
   if(method == "POST" && 
      is.list(form) && length(form)>0) 
     h %<>% curl::handle_setform(.list = form)
-  curl::curl(paste0(getOption("koboServer"),"/api/v1/",endpoint), handle = h)
+  curl::curl(paste0(server,"/api/v1/",endpoint), handle = h)
 }
 
 #' retrieve a list of all a user's projects from a kobo server
@@ -46,7 +46,7 @@ kobo_ls <- function(refresh = F,
         attr(getOption("koboList"),"opts"))){
     tb <- getOption("koboList")
   }else {
-    con <- kobo_curl("forms")
+    con <- kobo_curl("forms", server = server, token = token)
     tb <- readLines(con, warn = F) %>%
       jsonlite::fromJSON(simplifyVector = T) %>%
       as_tibble %>%
@@ -75,6 +75,8 @@ kobo_form <- function(formid = getOption("koboID"),
 }
 
 #' retrieve data from kobo
+#' 
+#' @export
 kobo_data <- function(formid = getOption("koboID"),
                       server = getOption("koboServer"),
                       token = getOption("koboToken"),

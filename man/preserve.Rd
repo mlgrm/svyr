@@ -4,8 +4,7 @@
 \alias{preserve}
 \title{perform an arbitrary function on an object, preserving some attributes}
 \usage{
-preserve(x, fun, atts = getOption("svyAttrIncl", c("group", "node",
-  "languages")), ...)
+preserve(x, ...)
 }
 \description{
 perform an arbitrary function on an object, preserving some attributes

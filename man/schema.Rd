@@ -5,7 +5,8 @@
 \alias{getSchema}
 \title{set/get the current default schema of a database connection}
 \usage{
-setSchema(name = getOption("svyDBSchema"), con = connection())
+setSchema(name = getOption("svyDBSchema", stop("need a schema")),
+  con = connection())
 
 getSchema()
 }
@@ -14,6 +15,4 @@ getSchema()
 }
 \description{
 set/get the current default schema of a database connection
-
-get the current schema(s)
 }

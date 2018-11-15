@@ -2,13 +2,18 @@
 % Please edit documentation in R/util.R
 \name{languages}
 \alias{languages}
-\alias{languages<-}
 \title{get the languages of a survey}
 \usage{
 languages(s)
-
-languages(x) <- value
+}
+\value{
+a character vector of the languages of the survey, or "default"
+if there are none
 }
 \description{
 get the languages of a survey
+}
+\details{
+if the language attribute is unset, languages will determine
+the languages from the svqs, set the attribute, and return the value
 }
