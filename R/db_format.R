@@ -18,14 +18,18 @@ db_format.svq <- function(q)
       
     # geopoints become an array of latitude, longitude, altitude and precision
     # TODO: upgrade to PostGIS
-    geopoint = structure(sprintf("{%s}", aaply(q, 1, paste, collapse = ",")),
-                         db_type = "REAL[]"),
-
+    geopoint = {
+      structure(
+        sprintf("{%s}", aaply(q, 1, function(r)
+          if(any(is.na(r))) "" else paste(r, collapse = ","))),
+        db_type = "REAL[]")
+    },
     # by default, just return the svq
     q
   )
 
 db_format.svy <- function(s){
+  browser()
   t <- s %>% 
     llply(db_format) %>% 
     as_tibble %>%
@@ -47,4 +51,5 @@ db_format.data.frame <- function(df){
   # just make the column names sql-compliant and remove group-like prefixes
   structure(df, names = sub("^.*/", "", names(df)) %>% make.sql.names) 
 }
+
 
