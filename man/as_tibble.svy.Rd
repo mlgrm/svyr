@@ -4,7 +4,7 @@
 \alias{as_tibble.svy}
 \title{s3 method to convert a svy to a tibble}
 \usage{
-\method{as_tibble}{svy}(s)
+\method{as_tibble}{svy}(s, validate = FALSE)
 }
 \description{
 s3 method to convert a svy to a tibble
