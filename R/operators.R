@@ -1,8 +1,21 @@
 
 #' compose two or more functions (mainly for use in *apply and plyr functions)
-'%*%' <- function(f,g) UseMethod("compose",f)
+#' 
+#' @export
+'%*%'<- function(f,g) UseMethod("compose",f)
 compose.function <- function(f,g)function(...)f(g(...))
 compose.default <- base::'%*%'
+
+#' sprintf operator
+#' 
+#' @export
+'%%' <- function(x, l)UseMethod('%%')
+'%%.character' <- function(x, l){
+  if(!is.list(l)) l <- list(l)
+  do.call(function(...)sprintf(x, ...), l)
+}
+'%%.default' <- base::'%%'
+
 
 #' extract or replace parts of a \code{svy} object
 #' 
@@ -31,8 +44,9 @@ compose.default <- base::'%*%'
 #' @rdname subsetting
 `[.svq` <- function(x, i, j, ...){
   nargs <- nargs()
-  missingi <- missing(i)
-  missingj <- missing(j)
+  if(missing(i)) i <- 1:NROW(x)
+  if(missing(j)) j <- 1:NCOL(x)
+  # browser(expr = nargs != 2)
   if(nargs == 2){
     # only one parameter, subset rows, and protect matrix type and colnames
     if(is.matrix(x)) preserve(x,function(y)
