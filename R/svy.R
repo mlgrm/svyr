@@ -49,22 +49,30 @@ svq <- function(dat, node, group){
 svq.group <- function(dat, node, group){
   # if node$type is "survey", this is the survey head, and the node name is
   # not the group name.  otherwise push the node name onto the group list
-  if(node$type!="survey") group <- paste(c(group, node$name), collapse = "/")
+  if(node$type != "survey") group <- paste(c(group, node$name), collapse = "/")
 
   node$children %>%
-    lapply(function(qn) # for each child in node
-      if (qn$type != "group"){ # if it's not a group, process it as a svq
-        cn <- paste(c(group, qn$name), collapse = "/") # column name
-        if(! cn %in% colnames(dat)){ # there is no data with that name
-          warning("question \"", cn, "\" not found in data, filling with NA")
-          dat <- rep(NA, NROW(dat)) # in this scope, dat become a single col
-        } else dat %<>% getElement(cn) # dat becomes the one column in dat
+    # for each child in node
+    lapply(function(qn) 
+      # if it's not a group, process it as a svq
+      if (qn$type != "group"){ 
+        # column name expected in dat
+        cn <- paste(c(group, qn$name), collapse = "/")
+        # there is no data column with that name, warn and fill with na's
+        if(! cn %in% colnames(dat)){
+          warning("question \"", cn, "\" of type \"", qn$type, 
+                  "\" not found in data, filling with NA")
+          dat <- rep(NA, NROW(dat))
+        # otherwise pull the right column
+        } else dat %<>% getElement(cn) 
         dat %<>%
-          svq(qn, group) %>%  # process as a question
-          structure(node = qn, group = group) %>% # add svg attributes
+          # process as a question
+          svq(qn, group) %>%  
+          # add svg attributes
+          structure(node = qn, group = group) %>% 
           list %>% # protect in a list
           structure(names = cn) # name the element in the list by the column
-      } else svq(dat, qn, group)) ->.#%>% # sub-groups get passed in again. 
+      } else svq(dat, qn, group)) %>% #%>% # sub-groups get passed in again. 
     do.call(c, .)
 }
 
