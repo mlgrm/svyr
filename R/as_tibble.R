@@ -56,16 +56,20 @@ collapse.svq <- function(x, index = 1:NROW(x)){
     llply(function(s)
       llply(s, function(q)structure(q, class = class(q)[-1])) %>% as_tibble
     ) %>% #debug_pipe %>%
-    bind_rows(.id = "instance") %>% #debug_pipe %>%
-    copy_atts(cbind(instance=1,x[[1]])) %>% #debug_pipe %>%
-    structure(., class = c("svy", class(.)))
+    bind_rows(.id = "instance") %>%
+    structure(
+      class = class(x[[1]]), 
+      node = node(x[[1]]),
+      languages = languages(x[[1]]),
+      group = group(x[[1]])
+    )
   x$instance %<>% as.integer
   x
 }
 
 #' s3 method to convert a svy to a tibble
-as_tibble.svy <- function(s)
-  tibble::as_tibble(structure(s, class = class(s)[-1]), validate = F)
+as_tibble.svy <- function(s, validate = FALSE)
+  tibble::as_tibble(structure(s, class = class(s)[-1]), validate = validate)
 
 #' convert a svy to a dataframe, splitting matrices to multiple columns
 #' 
