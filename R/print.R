@@ -1,6 +1,8 @@
 #' @export
 print.svy <- function(x, ...){
-  print(tibble::as_tibble(x, validate = FALSE),...)
+  print(tibble::as_tibble(
+    structure(x, class = class(x)[-1]), 
+    validate = FALSE),...)
 }
 
 #' @export
