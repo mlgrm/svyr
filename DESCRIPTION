@@ -12,12 +12,14 @@ Depends:
     plyr
 Imports:
     curl,
+    Hmisc,
     jsonlite,
     xlsx,
     xml2,
     xtable,
     plyr,
     dplyr,
+    dbplyr,
     purrr,
     googlesheets,
     googledrive,
