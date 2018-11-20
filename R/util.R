@@ -1,4 +1,11 @@
 #' get or set the node of a \code{svq|svy}
+#' 
+#' @details the node is the metadata corresponding to a `svy` or `svq` as
+#' produced by `jsonlite::fromJSON` on the ODK form in `json` format.  it
+#' is a nested list of character vectors containging information such as the
+#' name, question type, labels in various languages, skip logic, constraints, 
+#' etc.
+#' 
 #' @export
 node <- function(x)attr(x,"node")
 
@@ -26,6 +33,10 @@ types <- function(s)laply(s, type, empty_as_na = TRUE)
 
 #' S3 method for extracting a \code{svq}'s question label
 #'
+#' @param x a survey question or node
+#'
+#' @param use.node whether x is a node (FALSE) or contains a node (TRUE)
+#' 
 #' @importFrom xtable label
 #' @export
 label.svq <- function(x, 
@@ -58,6 +69,7 @@ has_label <- function(q, use.node = TRUE){
   ! is.null(node$label)
 }
 #' extract the choice labels of a multiple choice question in a language
+#' 
 #' @export
 labels.svq <- function(x, 
                        lang = if(is.null(languages(x))) NULL else 
@@ -233,4 +245,9 @@ df2dat <- function(df)
   t %>% 
   as.data.frame(check.names=F,stringsAsFactors=F) %>% 
   lapply(function(r){names(r) <- names(df); r})
+
+#' remove leading "uuid:" from a uuid text field
+#' 
+#' @export
+as_uuid <- function(x)sub("^uuid:", "", x)
 

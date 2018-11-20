@@ -62,15 +62,17 @@ push.svy <- function(s,
   push(question, ...)
   
   # a table with all the choices
-  choice <- s[types(s) %in% c( # just the multiple choice svqs
+  choice <- which(types(s) %in% c( # just the multiple choice svqs
     "select one",
     "select all that apply"
-  )] %>%
-    ldply(function(q){
+  )) %>%
+    ldply(function(i){
       df <- tibble(
-        question = name(q),
+        # need to match the field name in instances here, no the question name
+        # TODO: use enum types instead of the foreign key constraint
+        question = names(instance[-1])[i],
         choice = {
-          c <- choices(q)
+          c <- choices(s[[i]])
           if(Hmisc::all.is.numeric(c)) as.integer(c) else c
         }
       )
@@ -145,6 +147,7 @@ push.svy <- function(s,
   alter table question
   add constraint question_pk primary key (question);
   ")
+  browser()
   doSQL("
   alter table choice
   add constraint choice_question_fk foreign key (question) 
@@ -172,8 +175,8 @@ push.svy <- function(s,
   ")
 
   # rosters, if any
-  rosters <- alply(question[types(s) == "repeat", ], 1, function(qr)
-    getq(qr) %>% 
+  rosters <- dlply(question[types(s) == "repeat", ], 1, function(qr)
+    getq(qr) %>% debug_pipe %>%  
       collapse(instance$instance) %>%
       push(prefix = paste0("repeat_", q["question"]))
   )
@@ -196,7 +199,8 @@ push.data.frame <- function(df,
                             prefix = NULL,
                             schema = getSchema(),
                             con = connection(),
-                            modify = FALSE){
+                            modify = TRUE,
+                            overwrite = FALSE){
   if(is.null(name)) name <- deparse(substitute(df))
   if(! is.null(prefix)) name = paste(prefix, name, sep = "_")
   if(! is.null(getOption("svyDBSchema")) && schema != getOption("svyDBSchema")){
@@ -212,6 +216,7 @@ push.data.frame <- function(df,
     conn = con, 
     name = name, 
     value = df,
+    overwrite = overwrite,
     # if the field type is already set, keep it, otherwise default to RPostgres
     field.types = structure(ifelse(
       is.na(laply(df, db_type)),

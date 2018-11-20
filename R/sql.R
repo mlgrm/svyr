@@ -52,7 +52,7 @@ setSchema <- function(name=getOption("svyDBSchema", stop("need a schema")),
                       con=connection()){
   message("checking if schema exists, creating otherwise...")
   suppressMessages(doSQL(paste("create schema if not exists",
-                               getOption("svyDBSchema"))))
+                               name)))
   message("setting default schema.")
   doSQL(paste("set search_path to", name))
   options(svyDBSchema = name)$svyDBSchema
