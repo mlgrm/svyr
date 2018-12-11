@@ -81,7 +81,7 @@ kobo_data <- function(formid = getOption("koboID"),
                       server = getOption("koboServer"),
                       token = getOption("koboToken"),
                       raw = TRUE){
-  con <- kobo_curl(paste0("data/",formid))
+  con <- kobo_curl(paste0("data/",formid), server = server, token = token)
   res <- structure(readLines(con, warn = F) %>% 
                      jsonlite::fromJSON(simplifyVector = F),
             class = "odk_data")
@@ -98,7 +98,9 @@ kobo_submit <- function(file,
                         token = getOption("koboToken")){
   con <- kobo_curl(paste0("submissions"),
                    method = "POST",
-                   form = list(xml_submission_file=form_file(file))
+                   form = list(xml_submission_file=form_file(file)),
+                   server = server,
+                   token = token
   )
   close(con)
   res
