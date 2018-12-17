@@ -1,60 +1,62 @@
-
 #' compose two or more functions (mainly for use in *apply and plyr functions)
 #' 
-#' @export
-'%*%'<- function(f,g) UseMethod("compose",f)
-compose.function <- function(f,g)function(...)f(g(...))
-compose.default <- base::'%*%'
-
-#' sprintf operator
+#' don't use this. use `. %>% f %>% g instead``
 #' 
 #' @export
-'%%' <- function(x, l)UseMethod('%%')
-'%%.character' <- function(x, l){
-  if(!is.list(l)) l <- list(l)
-  do.call(function(...)sprintf(x, ...), l)
-}
-'%%.default' <- base::'%%'
+#' '%*%'<- function(f,g) UseMethod("compose",f)
+#' compose.function <- function(f,g)function(...)f(g(...))
+#' compose.default <- base::'%*%'
+#' 
+#' #' sprintf operator
+#' #' 
+#' #' @export
+#' '%%' <- function(x, l)UseMethod('%%')
+#' '%%.character' <- function(x, l){
+#'   if(!is.list(l)) l <- list(l)
+#'   do.call(function(...)sprintf(x, ...), l)
+#' }
+#' '%%.default' <- base::'%%'
 
 
 #' extract or replace parts of a \code{svy} object
 #' 
+#' don't use this
 #' @export
-#' @rdname subsetting
-`[.svy` <- function(x, i, j, ...){
-  nargs <- nargs()
-  missingi <- missing(i)
-  missingj <- missing(j)
-  if(nargs == 2 || (nargs == 3 && missingi)){ 
-    # only one parameter; this is a column edit, use tibble
-    preserve(x, function(y)y[force(i), ...])
-  } else {
-    preserve(x, function(y){
-      if(!missingj) y <- y[force(j), ...]
-      y <- llply(y, function(q){
-        q <- q[force(i)]
-      }) %>% tibble::as_tibble(validate = FALSE)
-    })
-  }
-}
-
-#' extract a subset from a \code{svq} object
+#' #' @rdname subsetting
+#' `[.svy` <- function(x, i, j, ...){
+#'   nargs <- nargs()
+#'   missingi <- missing(i)
+#'   missingj <- missing(j)
+#'   if(nargs == 2 || (nargs == 3 && missingi)){ 
+#'     # only one parameter; this is a column edit, use tibble
+#'     preserve(x, function(y)y[force(i), ...])
+#'   } else {
+#'     preserve(x, function(y){
+#'       if(!missingj) y <- y[force(j), ...]
+#'       y <- llply(y, function(q){
+#'         q <- q[force(i)]
+#'       }) %>% tibble::as_tibble(validate = FALSE)
+#'     })
+#'   }
+#' }
 #' 
-#' @export
-#' @rdname subsetting
-`[.svq` <- function(x, i, j, ...){
-  nargs <- nargs()
-  if(missing(i)) i <- 1:NROW(x)
-  if(missing(j)) j <- 1:NCOL(x)
-  # browser(expr = nargs != 2)
-  if(nargs == 2){
-    # only one parameter, subset rows, and protect matrix type and colnames
-    if(is.matrix(x)) preserve(x,function(y)
-      matrix(y[force(i),], ncol = ncol(y), dimnames = dimnames(x))) else
-        # vectors and lists take a straight subset
-        preserve(x,function(y)y[force(i)])
-  } else preserve(x, function(y)y[force(i),force(j),...])
-}
+#' #' extract a subset from a \code{svq} object
+#' #' 
+#' #' @export
+#' #' @rdname subsetting
+#' `[.svq` <- function(x, i, j, ...){
+#'   nargs <- nargs()
+#'   if(missing(i)) i <- 1:NROW(x)
+#'   if(missing(j)) j <- 1:NCOL(x)
+#'   # browser(expr = nargs != 2)
+#'   if(nargs == 2){
+#'     # only one parameter, subset rows, and protect matrix type and colnames
+#'     if(is.matrix(x)) preserve(x,function(y)
+#'       matrix(y[force(i),], ncol = ncol(y), dimnames = dimnames(x))) else
+#'         # vectors and lists take a straight subset
+#'         preserve(x,function(y)y[force(i)])
+#'   } else preserve(x, function(y)y[force(i),force(j),...])
+#' }
 
 #' extract a question from a survey by element name or question name
 #' 
