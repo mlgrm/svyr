@@ -12,6 +12,8 @@ kobo_curl <- function(endpoint,
                       headers = list(),
                       server = getOption("koboServer"),
                       token = getOption("koboToken")){
+  if(any(map_lgl(list(endpoint, server, token), is_null))) 
+    stop("missing url parameters")
   if (method != "GET") options$copypostfields <- method
   headers$Authorization <- paste("Token", token)
   h <- curl::new_handle()
@@ -34,8 +36,8 @@ kobo_ls <- function(refresh = F,
                              "description",
                              "num_of_submissions",
                              "last_submission_time"),
-                    server = getOption("koboServer"),
-                    token = getOption("koboToken")){
+                    server = getOption("koboServer", stop("no server defined")),
+                    token = getOption("koboToken", stop("no token defined"))){
   if (!refresh &&
       !is.null(getOption("koboList")) &&
       identical(
@@ -66,7 +68,9 @@ kobo_ls <- function(refresh = F,
 kobo_form <- function(formid = getOption("koboID"),
                       server = getOption("koboServer"),
                       token = getOption("koboToken")){
-  con <- kobo_curl(paste0("forms/",formid,"/form.json"))
+  con <- kobo_curl(paste0("forms/",formid,"/form.json"), 
+                   server = server,
+                   token = token)
   res <- structure(readLines(con, warn = F) %>% 
                      jsonlite::fromJSON(simplifyVector = F),
             class = "odk_form")

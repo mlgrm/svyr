@@ -36,6 +36,7 @@ svy <- function(dat = kobo_data(),
 
 #' a pseudo generic for creating \code{svq} objects.
 svq <- function(dat, node, group){
+  # if(node$type == "integer") browser()
   get0(paste("svq", make.names(node$type),sep = "."),
        mode = "function",
        ifnotfound = svq.default
@@ -80,8 +81,9 @@ svq.survey <- svq.group
 
 # repeat is a reserved word and make.names adds the terminal dot
 svq.repeat. <- function(dat, node, group){
-  stopifnot(is.list(dat))
-  dat[!sapply(dat,is.null)] %<>%
+  # stopifnot(is.list(dat))
+  # if(!is.list(dat)) browser()
+  dat[!(sapply(dat,is.null) | is.na(dat))] %<>%
     lapply(structure, class="odk_data") %>% 
     lapply(svy, form = node, group = group) %>%
     structure(node = node, group = group)
