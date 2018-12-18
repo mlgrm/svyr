@@ -24,10 +24,9 @@ pull <- function(spec = getOption("svyr_server_spec", kobo_spec())){
 }
 
 as_svy <- function(data, form, group = NULL, lang = "English"){
-  browser()
   # convert all columns with only one element sub-element lists to character
   data %<>% transpose_data()
-  map(form$children, parse_node, data = data, group = group) %>%
+  map(form$children, parse_node, data = data, group = group, lang = lang) %>%
     bind_cols %>% 
     structure(
       form = form,
@@ -53,16 +52,17 @@ flatten_linear <- function(data){
   )
 }
 
-parse_node <- function(node, data, group){
+parse_node <- function(node, data, group, lang = "English"){
   # if our node is a group, re-run recursively on all its children, pushing
   # its name onto group
   if(node$type == "group") 
-    return(bind_cols(map(
-      node$children, 
-      parse_node, 
-      data = data,
-      group = c(group, node$name)
-    )))
+    node$childrem %>%
+    map(parse_node, 
+        data = data, 
+        group = c(group, node$name), 
+        lang = lang) %>% 
+    bind_cols %>% 
+    return()
 
   # find data column
   name <- group %>% 
@@ -73,21 +73,7 @@ parse_node <- function(node, data, group){
     rep(NA_character_, nrow(data))
 
   # repeats are special: every element is a new survey
-  if(node$type == "repeat"){
-    if(all(is.na(datum))) return(map(datum, ~ list()))
-    map(datum, function(d){
-      # instances have no names, so if they have names they are data which
-      # means we have only one instance that got unlisted
-      if(!is.null(names(d))) d <- list(d)
-      # null elements are empty
-      if(is.null(d)) list() else as_svy(
-        data = d,
-        form = node, 
-        group = c(node$name, group),
-        lang = lang
-      )
-    })
-  }
+  if(node$type == "repeat") return(parse_node_repeat(datum, node, group, lang))
     
   # select function based on type
   parse_type <- case_when(
@@ -125,7 +111,7 @@ parse_node <- function(node, data, group){
   parse_datum <- get(str_c("parse_node_", parse_type), mode = "function")
   
   # parse
-  parse_datum(datum, node) %>% 
+  parse_datum(datum, node, lang) %>% 
     structure(
       class = c("svq", class(.)),
       node = node,
@@ -190,20 +176,37 @@ parse_node_select_multiple <- function(datum, node, lang = "English"){
     structure(levels = levels, labels = labels)
 }
 
-parse_node_repeat <- function(datum, node, lang = "English"){
-  # if no instance had this repeat, we'll see a vector of NA's
+parse_node_repeat <- function(datum, node, group, lang = "English"){
+  # if we processed this as missing data, make a list of empty lists
   if(all(is.na(datum))) return(map(datum, ~ list()))
   map(datum, function(d){
-    # no instances
-    if(is.null(d)) return(NULL)
     # instances have no names, so if they have names they are data which
-    # means we have only one instance that got unlisted
+    # means we have only one instance that got unlisted, so relist it
     if(!is.null(names(d))) d <- list(d)
-    as_svy(d, node, group = c(node$name, grouplang = lang))
+    # null elements are empty
+    if(is.null(d)) list() else
+      # all others are subsurveys and can be processed as a new survey
+      as_svy(
+        data = d,
+        form = node, 
+        group = c(node$name, group),
+        lang = lang
+      )
   })
+  
+  # # if no instance had this repeat, we'll see a vector of NA's
+  # if(all(is.na(datum))) return(map(datum, ~ list()))
+  # map(datum, function(d){
+  #   # no instances
+  #   if(is.null(d)) return(NULL)
+  #   # instances have no names, so if they have names they are data which
+  #   # means we have only one instance that got unlisted
+  #   if(!is.null(names(d))) d <- list(d)
+  #   as_svy(d, node, group = c(node$name, grouplang = lang))
+  # })
 }
 
-parse_node_string <- function(datum, node, lang = "English")datum
+parse_node_string <- function(datum, node, lang = "English") datum
 
 
 # platform-specific specs -------------------------------------------

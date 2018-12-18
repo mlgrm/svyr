@@ -12,3 +12,10 @@ node(x) <- value
 \description{
 get or set the node of a \code{svq|svy}
 }
+\details{
+the node is the metadata corresponding to a `svy` or `svq` as
+produced by `jsonlite::fromJSON` on the ODK form in `json` format.  it
+is a nested list of character vectors containging information such as the
+name, question type, labels in various languages, skip logic, constraints, 
+etc.
+}

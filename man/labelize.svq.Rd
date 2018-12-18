@@ -4,7 +4,7 @@
 \alias{labelize.svq}
 \title{s3 method for class svq}
 \usage{
-\method{labelize}{svq}(q)
+\method{labelize}{svq}(q, lang = getOption("svyLang", "English"))
 }
 \description{
 s3 method for class svq

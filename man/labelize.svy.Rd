@@ -4,7 +4,7 @@
 \alias{labelize.svy}
 \title{s3 method for class svy}
 \usage{
-\method{labelize}{svy}(s)
+\method{labelize}{svy}(s, lang = getOption("svyLang", "English"))
 }
 \description{
 s3 method for class svy

@@ -6,7 +6,8 @@
 \usage{
 kobo_ls(refresh = F, cols = c("formid", "description",
   "num_of_submissions", "last_submission_time"),
-  server = getOption("koboServer"), token = getOption("koboToken"))
+  server = getOption("koboServer", stop("no server defined")),
+  token = getOption("koboToken", stop("no token defined")))
 }
 \description{
 retrieve a list of all a user's projects from a kobo server

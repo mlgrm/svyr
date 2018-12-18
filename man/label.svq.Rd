@@ -7,6 +7,11 @@
 \method{label}{svq}(x, lang = if (is.null(languages(x))) NULL else
   getOption("svyLang", "English"), use.node = TRUE)
 }
+\arguments{
+\item{x}{a survey question or node}
+
+\item{use.node}{whether x is a node (FALSE) or contains a node (TRUE)}
+}
 \description{
 S3 method for extracting a \code{svq}'s question label
 }
