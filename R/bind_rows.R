@@ -1,0 +1,108 @@
+# bind_rows <- function(...) UseMethod("bind_rows", list(...)[[1]])
+# 
+# bind_rows.list <- function(l, .id = NULL) do.call(bind_rows, l)
+# 
+# bind_rows.svy <- function(..., .id = NULL){
+#   l <- list(...)
+#   if(length(l) == 1) l <- l[[1]]
+#   l %>% debug_pipe %>% 
+#     map(function(s) 
+#       map_dfc(s, function(col) 
+#         if(is.matrix(col)) 
+#           by(col,1:NROW(col),as.matrix) else 
+#             col)) %>% debug_pipe %>% 
+#     bind_rows(.id = .id) %>%
+#     { 
+#       attributes(.) <- attributes(l[[1]])
+#       . 
+#     }
+# }
+# 
+# bind_rows.default <- dplyr::bind_rowst
+
+bind_rows.svy <- function(.l, .id = NULL, 
+                          .names = getOption(
+                            "preserve_atts", 
+                            c("node", "group", "class", "languages")
+                          )){
+  # save attributes of last svy
+  slast <- .l[[length(.l)]]
+  atts <- attributes(slast)[names(attributes(slast)) %in% .names]
+  
+  # for each new svy, overwrite atts of the previous and insert new svq atts
+  atts_list <- list()
+  for(s in .l)
+    atts_list[names(s)] <- map(s, ~attributes(.)[names(attributes(.)) %in% .names])
+
+  # combine matrices across svys
+  nr <- map_int(.l, nrow)
+  mats <- 
+    # get all the mats for each svy
+    map(.l, select_if, is.matrix) %>%
+    # organize them by matrix svq
+    transpose %>%
+    # for each matrix svq
+    map(~{
+      # find the colnames (first non-null entry)
+      cn <- colnames(.[! map_lgl(., is.null)][[1]])
+      # find the type
+      tp <- typeof(.[! map_lgl(., is.null)][[1]])
+      # fill null mats with NA of the right tp
+      map2(
+        ., nr, 
+        ~if(is.null(.x))
+          matrix(as(NA,tp), .y, length(cn), dimnames = list(, cn)) else
+            .x
+      )
+    }) %>% 
+    # rbind them together
+    do.call(what = rbind, args = .)
+  
+  # replace matrix svqs with indices
+  .l <- map2(.l, nr, ~mutate_if(.x, is.matrix, function(s0)seq.int(.y)))
+  
+  # bind rows
+  s <- bind_rows(.l)
+  
+  # restore matrices
+  s[names(mats)] <- mats
+  
+  # restore atts of svqs
+  s <- map2_dfc(
+    s, atts_list,
+    ~ {
+      # append the attributes in atts_list, 
+      # overwriting those that already exist
+      attributes(.x) <- append(
+        attributes(.x)[! names(attributes(.x)) %in% names(.y)],
+        .y)
+      .x
+    }
+  )
+  
+  # restore atts of last survey
+  attributes(s) <- append(
+    attributes(s)[! names(attributes(s)) %in% names(atts)],
+    atts
+  )
+  s
+}
+  # map(l, function(s){
+  #   mats <- select_if(s, is.matrix)
+  #   s <- mutate_if(s, is.matrix, ~1:nrow(.))
+  #   structure(s, mats = mats)
+  # }) %>% {
+  #   # list of lists of matrices
+  #   mats <- 
+  #     map(., attr, "mats") %>% 
+  #     transpose(.names = Reduce(union, map(., names))) %>% 
+  #     map(~do.call(what = rbind, args = .))
+  #   quietly(bind_rows)(., .id = .id)$result %>% #debug_pipe() %>% 
+  #   {
+  #     .[names(mats)] <- mats
+  #     atts <- c("name", "class", "node", "languages")
+  #     attributes(.)[atts] <- attributes(l[[1]])[atts]
+  #     .
+  #   }
+  # }
+    

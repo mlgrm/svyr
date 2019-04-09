@@ -115,6 +115,8 @@ svq.geopoint <- function(dat, node, group){
   dat %>%
     strsplit(" ") %>%
     do.call(rbind, .) %>%
+    as.numeric %>% 
+    matrix(ncol = 4) %>% 
     structure(dimnames = list(NULL,c(
       "latitude",
       "longitude",

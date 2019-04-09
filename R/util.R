@@ -227,6 +227,7 @@ data.svg <- function(x)attr(x,"data")
 data.svy <- function(x)attr(x,"data")
 
 apply <- function(x,f,...)UseMethod("apply", x)
+apply.default <- base::apply
 
 apply.svy <- function(s,f,...)preserve(s,function(x)
   lapply(x,function(x1){
