@@ -20,6 +20,7 @@
 # 
 # bind_rows.default <- dplyr::bind_rowst
 
+#' bind \code{svy}s with the same structure together into a single \code{svy}
 bind_rows.svy <- function(.l, .id = NULL, 
                           .names = getOption(
                             "preserve_atts", 
@@ -30,15 +31,20 @@ bind_rows.svy <- function(.l, .id = NULL,
   atts <- attributes(slast)[names(attributes(slast)) %in% .names]
   
   # for each new svy, overwrite atts of the previous and insert new svq atts
+  # this means that the output svy will contain at least all the atts of the 
+  # last (most recent) svy
   atts_list <- list()
   for(s in .l)
-    atts_list[names(s)] <- map(s, ~attributes(.)[names(attributes(.)) %in% .names])
+    atts_list[names(s)] <- map(
+      s, 
+      ~attributes(.)[names(attributes(.)) %in% .names]
+    )
 
   # combine matrices across svys
-  nr <- map_int(.l, nrow)
+  nr <- map_int(.l, NROW)
   mats <- 
     # get all the mats for each svy
-    map(.l, select_if, is.matrix) %>%
+    map(.l[nr > 0], select_if, is.matrix) %>%
     # organize them by matrix svq
     transpose %>%
     # for each matrix svq
@@ -47,7 +53,7 @@ bind_rows.svy <- function(.l, .id = NULL,
       cn <- colnames(.[! map_lgl(., is.null)][[1]])
       # find the type
       tp <- typeof(.[! map_lgl(., is.null)][[1]])
-      # fill null mats with NA of the right tp
+      # fill null mats with NA of the right type
       map2(
         ., nr, 
         ~if(is.null(.x))
@@ -59,17 +65,18 @@ bind_rows.svy <- function(.l, .id = NULL,
     do.call(what = rbind, args = .)
   
   # replace matrix svqs with indices
-  .l <- map2(.l, nr, ~mutate_if(.x, is.matrix, function(s0)seq.int(.y)))
+  .l[nr > 0] <- map2(.l[nr > 0], nr[nr > 0], 
+                     ~mutate_if(.x, is.matrix, function(s0)seq.int(.y)))
   
   # bind rows
-  s <- bind_rows(.l)
+  s <- quietly(bind_rows)(.l, .id = .id)$result
   
   # restore matrices
   s[names(mats)] <- mats
   
-  # restore atts of svqs
-  s <- map2_dfc(
-    s, atts_list,
+  # restore atts of svqs (but only those that have atts)
+  s[names(atts_list)] <- map2_dfc(
+    s[names(atts_list)], atts_list,
     ~ {
       # append the attributes in atts_list, 
       # overwriting those that already exist

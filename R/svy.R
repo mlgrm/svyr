@@ -83,9 +83,12 @@ svq.survey <- svq.group
 svq.repeat. <- function(dat, node, group){
   # stopifnot(is.list(dat))
   # if(!is.list(dat)) browser()
+  # attr(dat, "empty") <- svy(NULL, node, group)
   dat[!(sapply(dat,is.null) | is.na(dat))] %<>%
-    lapply(structure, class="odk_data") %>% 
-    lapply(svy, form = node, group = group) %>%
+  # dat %<>%
+    map(structure, class="odk_data") %>% 
+    map(~ if(length(.) == 0) list() else 
+      svy(., form = node, group = group)) %>%
     structure(node = node, group = group)
   dat
 }
@@ -96,8 +99,7 @@ svq.select.all.that.apply <- function(dat, node, group){
   dat %>% #debug_pipe(expr = ! is.character(.)) %>% 
     strsplit(" ") %>% # the ith element is a vector of the ith element of dat
     ldply(function(r)ch %in% r) %>%
-    as.matrix %>% 
-    structure(dimnames=list(NULL,ch))
+    as.matrix(ncol = length(ch), dimnames = list(NULL,ch)) 
 }
 
 svq.select.one <- function(dat, node, group){
@@ -113,6 +115,7 @@ svq.range <- function(x, ...)
 svq.note <- function(dat, ...)rep('', NROW(dat))
 svq.geopoint <- function(dat, node, group){
   dat %>%
+    as.character %>% 
     strsplit(" ") %>%
     do.call(rbind, .) %>%
     as.numeric %>% 
