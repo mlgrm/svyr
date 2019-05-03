@@ -2,8 +2,8 @@
 % Please edit documentation in R/preservingly.R
 \name{preservingly}
 \alias{preservingly}
-\title{modify a function acting on a list to preserve some of the attributes of
-the list and its elements}
+\title{modify a function acting on a list to preserve matrix elements and 
+some of the attributes of the list and its elements}
 \usage{
 preservingly(.f, .names = getOption("preserve_atts", c("node", "group",
   "class", "languages")))
@@ -14,8 +14,8 @@ preservingly(.f, .names = getOption("preserve_atts", c("node", "group",
 \item{.names}{vector of names of attributes to be preserved}
 }
 \description{
-modify a function acting on a list to preserve some of the attributes of
-the list and its elements
+modify a function acting on a list to preserve matrix elements and 
+some of the attributes of the list and its elements
 }
 \details{
 this adverb wraps destructive functions such as 
@@ -26,5 +26,5 @@ objects and their constituent \code{svq}s do not lose their attributes
 }
 \note{
 do not wrap functions that do not return a list of the same length,
-i.e. column operations should be performed separately from row operations
+i.e. column operations should be performed separately from row operations.
 }

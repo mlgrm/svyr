@@ -1,26 +1,21 @@
-# bind_rows <- function(...) UseMethod("bind_rows", list(...)[[1]])
-# 
-# bind_rows.list <- function(l, .id = NULL) do.call(bind_rows, l)
-# 
-# bind_rows.svy <- function(..., .id = NULL){
-#   l <- list(...)
-#   if(length(l) == 1) l <- l[[1]]
-#   l %>% debug_pipe %>% 
-#     map(function(s) 
-#       map_dfc(s, function(col) 
-#         if(is.matrix(col)) 
-#           by(col,1:NROW(col),as.matrix) else 
-#             col)) %>% debug_pipe %>% 
-#     bind_rows(.id = .id) %>%
-#     { 
-#       attributes(.) <- attributes(l[[1]])
-#       . 
-#     }
-# }
-# 
-# bind_rows.default <- dplyr::bind_rowst
+#' generic to extend \code{dplyr::bind_rows} to \code{svy}s
+#' @export
+bind_rows <- function(x, ...)UseMethod("bind_rows", x)
 
-#' bind \code{svy}s with the same structure together into a single \code{svy}
+#' bind \code{svy}s with the same structure (form) together into a single \code{svy}
+#' 
+#' @details this is a method to do \code{dplyr::bind_rows()} on \code{svy}s without
+#' clobbering the metadata attributes
+#' 
+#' @param .l a list of \code{svy}s to bind together, rowwise.  this implementation does
+#' not accept the dots format used in \code{dplyr::bind_rows}.
+#' 
+#' @param .id the name of a (new) column to index the rows being bound
+#' 
+#' @param .names the names of the attributes to be preserved over the binding
+#' 
+#' @method bind_rows svy
+#' 
 bind_rows.svy <- function(.l, .id = NULL, 
                           .names = getOption(
                             "preserve_atts", 
@@ -32,7 +27,7 @@ bind_rows.svy <- function(.l, .id = NULL,
   
   # for each new svy, overwrite atts of the previous and insert new svq atts
   # this means that the output svy will contain at least all the atts of the 
-  # last (most recent) svy
+  # last (most recent) svy.
   atts_list <- list()
   for(s in .l)
     atts_list[names(s)] <- map(
@@ -113,3 +108,4 @@ bind_rows.svy <- function(.l, .id = NULL,
   #   }
   # }
     
+bind_rows.default <- dplyr::bind_rows
