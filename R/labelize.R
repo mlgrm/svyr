@@ -29,3 +29,7 @@ labelize.svq <- function(q, lang = getOption("svyLang", "English")){
          q
   )
 }
+
+#' @export
+labelize.default <- identity
+

@@ -54,11 +54,11 @@ bind_rows.svy <- function(.l, .id = NULL,
         ~if(is.null(.x))
           matrix(as(NA,tp), .y, length(cn), dimnames = list(, cn)) else
             .x
-      )
-    }) %>% 
-    # rbind them together
-    do.call(what = rbind, args = .)
-  
+      ) %>% 
+      # rbind them together
+      do.call(what = rbind, args = .)
+    })
+
   # replace matrix svqs with indices
   .l[nr > 0] <- map2(.l[nr > 0], nr[nr > 0], 
                      ~mutate_if(.x, is.matrix, function(s0)seq.int(.y)))
@@ -70,17 +70,22 @@ bind_rows.svy <- function(.l, .id = NULL,
   s[names(mats)] <- mats
   
   # restore atts of svqs (but only those that have atts)
-  s[names(atts_list)] <- map2_dfc(
-    s[names(atts_list)], atts_list,
-    ~ {
-      # append the attributes in atts_list, 
-      # overwriting those that already exist
-      attributes(.x) <- append(
-        attributes(.x)[! names(attributes(.x)) %in% names(.y)],
-        .y)
-      .x
-    }
-  )
+  for(n in names(atts_list)) 
+    attributes(s[[n]]) <- append(
+      attributes(s[[n]])[ ! names(attributes(s[[n]])) %in% names(atts_list[[n]]) ],
+      atts_list[[n]]
+    )
+  # s[names(atts_list)] <- map2_dfc(
+  #   s[names(atts_list)], atts_list,
+  #   ~ {
+  #     # append the attributes in atts_list, 
+  #     # overwriting those that already exist
+  #     attributes(.x) <- append(
+  #       attributes(.x)[! names(attributes(.x)) %in% names(.y)],
+  #       .y)
+  #     .x
+  #   }
+  # )
   
   # restore atts of last survey
   attributes(s) <- append(
