@@ -71,6 +71,7 @@ db_write_svy_tables <- function(s,
     overwrite = overwrite,
     append = append
   )
+  
   # set primary keys
   map(names(rpts), ~dbSendQuery(conn, str_glue(
     "
@@ -107,3 +108,5 @@ db_write_svy_tables <- function(s,
     })
   invisible(c(list(tbl(conn, name)),unlist(rptbl,recursive = FALSE)))
 }
+
+toDB.svy <- db_write_svy_tables
