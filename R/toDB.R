@@ -1,22 +1,17 @@
 db_write_svy_tables <- function(s,
-                     name,
-                     conn = NULL,
-                     db = getOption("dbName"),
-                     server = getOption("dbServer"),
-                     user = getOption("dbUser"),
-                     password = getOption("dbPasswd"),
-                     schema = getOption("dbSchema"),
-                     labelize = TRUE,
-                     overwrite = FALSE,
-                     append = FALSE
-                     ){
+                                name,
+                                conn = NULL,
+                                db = getOption("dbName"),
+                                server = getOption("dbServer"),
+                                user = getOption("dbUser"),
+                                password = getOption("dbPasswd"),
+                                schema = getOption("dbSchema"),
+                                labelize = TRUE,
+                                overwrite = FALSE,
+                                append = FALSE){
+  
   if(labelize) s %<>% svyr::labelize(.)
-  names(s) <- 
-    # get names from svqs
-    map_chr(s, svyr::name) %>%
-    # unless they have none
-    { ifelse(is.na(.), names(s), .) } %>% 
-    mkSQLnames(max.len = 24)
+  names(s) <- sql_names(s)
   
   # split up matrices
   for(n in colnames(s)){
@@ -55,7 +50,7 @@ db_write_svy_tables <- function(s,
   if(! schema %in% dbGetQuery(
     conn, 
     "select nspname from pg_catalog.pg_namespace")[[1]]
-    ) dbGetQuery(conn, str_glue("create schema {schema}"))
+    ) dbSendQuery(conn, str_glue("create schema {schema}"))
   if(! str_detect(search_path, str_glue("^{schema},")))
     dbSendQuery(
       conn,
@@ -98,12 +93,14 @@ db_write_svy_tables <- function(s,
           overwrite = overwrite,
           append = append
         )
-      dbSendQuery(
-        conn,
-        str_glue("alter table {rpt_name}
-                  add foreign key ({n}) references {name}({n})
-                  ;")
-      )
+      # dbSendQuery(
+      #   conn,
+      # TODO: make sure we use names mapped by mkSQLnames, not the
+      # column names
+      #   str_glue("alter table {rpt_name}
+      #             add foreign key ({n}) references {name}({n})
+      #             ;")
+      # )
       tbl
     })
   invisible(c(list(tbl(conn, name)),unlist(rptbl,recursive = FALSE)))

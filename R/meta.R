@@ -2,11 +2,19 @@
 meta_question <- function(s)
   tibble(
     question = 1:length(s),
-    name = svyr::all_names(s),
+    svy_name = svyr::all_names(s),
+    sql_name = sql_names(s),
     group = map_chr(s, ~str_c(group(.), collapse = "/")),
-    sql_name = names(s),
+    colname = names(s),
     node = map(s, node)
   )
+
+sql_names <- function(s)
+  # get names from svqs
+  map_chr(s, svyr::name) %>%
+  # unless they have none
+  { ifelse(is.na(.), names(s), .) } %>% 
+  mkSQLnames(max.len = 24)
 
 get_selects <- function(s)
   which(types(s) %in% c("select one", "select all that apply"))
@@ -36,7 +44,7 @@ meta_label <- function(s){
         1:length(node(s[[i]])$children),
         ~tibble(
           question = i,
-          type = factor("question", levels = c("question", "choice")),
+          type = factor("choice", levels = c("question", "choice")),
           choice = ch$choice[ch$question==i][.],
           index = .,
           lang = names(node(s[[i]])$children[[.]]$label),

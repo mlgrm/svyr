@@ -17,7 +17,7 @@ labelize.svy <-
 #' 
 #' @export
 labelize.svq <- function(q, lang = getOption("svyLang", "English")){
-  switch(type(q),
+  switch(type(q, empty_as_na = FALSE),
          "select one"={
            levels(q) <- labels(q, lang = lang)
            q

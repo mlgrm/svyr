@@ -3,7 +3,7 @@
 # library(dplyr)
 
 
-summary <- function(x,...) UseMethod("summary", x)
+# summary <- function(x,...) UseMethod("summary", x)
 
 summary.svy <- function(x,...)ldply(flatten(s),summary,.id="qid",...)
 

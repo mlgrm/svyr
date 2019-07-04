@@ -24,6 +24,8 @@ svy <- function(dat = kobo_data(),
                 form = kobo_form(),
                 group = NULL) {
   if(length(dat)==1 && is.na(dat)) return(NULL)
+  if(is.character(dat) && length(dat) == 1) 
+    dat <- read_csv(dat, na = "n/a", col_types = cols(.default = "c"))
   dat %<>%
     tibble::as_tibble() %>%
     svq.group(node = form, group = group) %>%
@@ -35,12 +37,14 @@ svy <- function(dat = kobo_data(),
 }
 
 #' a pseudo generic for creating \code{svq} objects.
+#' @export
 svq <- function(dat, node, group){
-  # if(node$type == "integer") browser()
-  get0(paste("svq", make.names(node$type),sep = "."),
-       mode = "function",
-       ifnotfound = svq.default
-  )(dat, node, group) %>%
+  fun <- get0(
+    str_glue("svq.{make.names(node$type)}"),
+    mode = "function",
+    ifnotfound = svq.default
+  )
+  fun(dat, node, group) %>%
   structure(., 
             node = node,
             group = group,
@@ -48,34 +52,111 @@ svq <- function(dat, node, group){
 }
 
 svq.group <- function(dat, node, group){
-  # if node$type is "survey", this is the survey head, and the node name is
-  # not the group name.  otherwise push the node name onto the group list
-  if(node$type != "survey") group <- paste(c(group, node$name), collapse = "/")
-
-  node$children %>%
-    # for each child in node
-    lapply(function(qn) 
-      # if it's not a group, process it as a svq
-      if (qn$type != "group"){ 
-        # column name expected in dat
-        cn <- paste(c(group, qn$name), collapse = "/")
-        # there is no data column with that name, warn and fill with na's
-        if(! cn %in% colnames(dat)){
-          warning("question \"", cn, "\" of type \"", qn$type, 
-                  "\" not found in data, filling with NA")
-          dat <- rep(NA, NROW(dat))
-        # otherwise pull the right column
-        } else dat %<>% getElement(cn) 
-        dat %<>%
-          # process as a question
-          svq(qn, group) %>%  
-          # add svg attributes
-          structure(node = qn, group = group) %>% 
-          list %>% # protect in a list
-          structure(names = cn) # name the element in the list by the column
-      } else svq(dat, qn, group)) %>% #%>% # sub-groups get passed in again. 
-    do.call(c, .)
+  map(node$children, function(n){
+    # recurse on groups
+    if(n$type == "group") return(svq.group(dat, n, c(group, n$name)))
+    
+    col_name <- str_flatten(c(group, n$name), "/")
+    
+    # the csv export format places select multiples in multiple
+    # columns so we have to allow that pattern extension
+    pattern <- str_glue("^{col_name}(/[A-z0-9_]+)?$")
+    
+    datum <- dat[str_which(names(dat), pattern)]
+    
+    if(length(datum) == 1) datum <- datum[[1]]
+    if(length(datum) == 0) datum <- rep(NA_character_, nrow(dat))
+    
+    svq(datum, n, group) %>%
+      # (function(x){ browser(expr = n$name == "uuid"); x }) %>% 
+      tibble() %>% 
+      structure(
+        names = col_name, 
+        class = c("svy", class(.)), 
+        node = node, 
+        group = group
+      )
+  }) %>% 
+    # debug_pipe() %>% 
+    bind_cols.svy()
 }
+
+
+# svq.group <- function(dat, node, group){
+#   col_name <- function(qn) c(group, qn$name) %>% str_flatten("/")
+#   map(
+#     node$children %>% set_names(map_chr(., col_name)), 
+#     function(qn){
+#       # for each child in node
+#       cn <- col_name(qn)
+#       
+#       # column name pattern expected in dat
+#       # allow for choice names in select_multiple
+#       pattern <- str_glue(
+#         "^{cn}(/[A-z0-9_]+)?$"
+#       )
+#       
+#       # browser(expr = qn$type == "group")
+#       # if it is a group, recurse
+#       if(qn$type == "group"){
+#         return(
+#           svq.group(
+#             dat = dat, 
+#             node = qn, 
+#             group = c(group, qn$name)
+#           )
+#         )
+#       }
+#       
+#       # if there are multiple columns that start with that name, it may
+#       # be a select multiple loaded from a csv export of the data
+#       if(any(str_detect(names(dat), pattern))){
+#         dat <- dat[str_which(names(dat), pattern)]
+#       } else {
+#         # if there is no data column with a matching name 
+#         # warn (if not a note) and fill with na's
+#         if(qn$type != "note")
+#           warning(
+#             "question \"", cn, "\" of type \"", qn$type, 
+#             "\" not found in data, filling with NA"
+#           )
+#         dat <- tibble(a = rep(NA, NROW(dat))) %>% set_names(qn$name)
+#       }
+#       
+#       stopifnot(is_tibble(dat))
+#       dat %<>%
+#         # svq.<type> expects one-column data to be a vector and 
+#         # returns a vector
+#         # FIXME
+#         { if(NCOL(.) == 1) .[[1]] else . } %>% 
+#         # process as a question
+#         svq(qn, group) %>%
+#         # rewrap if necessary
+#         { if(is_tibble(.)) . else tibble(.) } %>%
+#         # hide matrices in the attributes
+#         { 
+#           if(length(.) == 1 && is.matrix(.[[1]])) 
+#             .[[1]] <- structure(1:nrow(.[[1]]), matrix = .[[1]])
+#           .
+#         } %>%
+#         structure(names = cn)
+#     }) %>%
+#       (function(x){
+#         browser(expr = is(tryCatch(bind_cols(x), error = identity),"error"))
+#         x
+#       }) %>% 
+#     # debug_pipe %>%
+#     bind_cols %>%
+#     # restore the matrices
+#     { 
+#       for(colname in colnames(.)) 
+#         if(!is.null(attr(.[[colname]], "matrix"))){
+#           .[[colname]] <- attr(.[[colname]], "matrix")
+#           attr(.[[colname]], "matrix") <- NULL
+#         }
+#       .
+#     }
+# }
 
 svq.survey <- svq.group
 
@@ -94,12 +175,29 @@ svq.repeat. <- function(dat, node, group){
 }
 
 svq.select.all.that.apply <- function(dat, node, group){
-  ch <- sapply(node$children, getElement, "name") # choice names
-  dat[is.na(dat)] <- ""
-  dat %>% #debug_pipe(expr = ! is.character(.)) %>% 
-    strsplit(" ") %>% # the ith element is a vector of the ith element of dat
-    ldply(function(r)ch %in% r) %>%
-    as.matrix(ncol = length(ch), dimnames = list(NULL,ch)) 
+  choice_names <- map_chr(node$children, getElement, "name") # choice names
+  
+  # multicolumn dat means we have one column for each choice
+  if( NCOL(dat) > 1 ){
+    dat %<>% 
+      map_dfc(as.logical) %>% 
+      as.matrix(dat) %>%
+      structure(dimnames = list(NULL, choice_names)) 
+  # otherwise, we have a vector of strings
+  } else {
+    dat <- 
+      dat %>% #debug_pipe %>% 
+      str_split(" ") %>% # the ith element is a vector of the ith element of dat
+      map_dfc(
+        function(r)
+          if(length(r) == 1 && is.na(r)) rep(NA, length(choice_names)) else
+            choice_names %in% r
+      ) %>%
+      as.matrix %>% 
+      t
+    dimnames(dat) <- list(NULL, choice_names)
+  }
+  dat
 }
 
 svq.select.one <- function(dat, node, group){

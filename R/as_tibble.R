@@ -74,7 +74,7 @@ as_tibble.svy <- function(s, validate = FALSE)
 #' convert a svy to a dataframe, splitting matrices to multiple columns
 #' 
 as.data.frame.svy <- function(x, ...)
-  llply(names(x),function(n)
+  map(names(x), function(n)
     if(is.matrix(x[[n]])) 
       structure(
         as.data.frame(x[[n]]), 
