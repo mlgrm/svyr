@@ -13,6 +13,7 @@ db_write_svy_tables <- function(s,
   if(labelize) s %<>% svyr::labelize(.)
   names(s) <- sql_names(s)
   
+  
   # split up matrices
   for(n in colnames(s)){
     if(is.matrix(s[[n]])){
@@ -29,14 +30,14 @@ db_write_svy_tables <- function(s,
       s <- do.call(function(...)add_column(s, ..., .after = ind - 1), df)
     }
   }
+  
   # collect rosters
-  rpts <- select_if(s, function(x)
-    (! is.na(svyr::type(x))) && svyr::type(x) == "repeat")
-  # simplify lists of surveys (rosters)
+  rpts <- select_if(s, ~identical(svyr::type(.), "repeat"))
+  # convert repeats to an index
   s <- mutate_if(
     s, 
-    ~(! is.na(svyr::type(.))) && svyr::type(.) == "repeat", 
-    ~as.character(1:length(.))
+    ~identical(svyr::type(.), "repeat"), 
+    ~1:length(.)
   )
   if(is.null(conn))
     conn <- DBI::dbConnect(
@@ -50,28 +51,31 @@ db_write_svy_tables <- function(s,
   if(! schema %in% dbGetQuery(
     conn, 
     "select nspname from pg_catalog.pg_namespace")[[1]]
-    ) dbSendQuery(conn, str_glue("create schema {schema}"))
+    ) dbExecute(conn, str_glue("create schema {schema}"))
   if(! str_detect(search_path, str_glue("^{schema},")))
-    dbSendQuery(
+    dbExecute(
       conn,
       str_glue("set search_path to {schema}, 
                {paste(search_path, collapse = ', ')}")
     ) 
-  db_write_table(
-    conn, 
-    name,
-    dbDataType(conn, s), 
-    as_tibble(s), 
+
+  # if(name == "base_hh") browser()
+  
+  dbWriteTable(
+    conn = conn, 
+    name = name,
+    field.types = dbDataType(conn, s), 
+    value = as_tibble(s),
     temporary = FALSE,
     overwrite = overwrite,
     append = append
   )
   
   # set primary keys
-  map(names(rpts), ~dbSendQuery(conn, str_glue(
+  map(names(rpts), ~dbExecute(conn, str_glue(
     "
     alter table {name}
-    add constraint unq_{.} unique ({.})
+    add constraint unq__{name}__{.} unique ({.})
     ;"
     )))
   
@@ -80,6 +84,7 @@ db_write_svy_tables <- function(s,
       rpt_name <- str_glue("{name}__rpt_{n}")
       tbl <- 
         bind_rows.svy(rpts[[n]], .id = n) %>% 
+        debug_pipe() %>% 
         { if(labelize) svyr::labelize(.) else .} %>% 
         toDB.svy(
           name = rpt_name,
