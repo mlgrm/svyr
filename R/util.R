@@ -213,31 +213,31 @@ counts <- list(
   select.all.that.apply=function(x)colSums(x,na.rm=TRUE)
 )
 
-data <- function(x) UseMethod("data", x)
-data.svr <- function(x,...){
-  l <- lapply(names(x),function(n){
-    df <- as.data.frame(x[[n]])
-    # if(is(tryCatch(rep(n,nrow(df)),error=identity),"error"))browser()
-    df <- cbind(id=rep(n,nrow(df)),df)
-  })
-  do.call(rbind,l)
-}
-data.svq <- identity
-data.svg <- function(x)attr(x,"data")
-data.svy <- function(x)attr(x,"data")
-
-apply <- function(x,f,...)UseMethod("apply", x)
-apply.default <- base::apply
-
-apply.svy <- function(s,f,...)preserve(s,function(x)
-  lapply(x,function(x1){
-    browser()
-    apply(x1,f,...)
-  })
-)
-apply.svg <- apply.svy
-apply.svr <- apply.svy
-apply.svq <- function(x,f,...)preserve(x,f,...)
+# data <- function(x) UseMethod("data", x)
+# data.svr <- function(x,...){
+#   l <- lapply(names(x),function(n){
+#     df <- as.data.frame(x[[n]])
+#     # if(is(tryCatch(rep(n,nrow(df)),error=identity),"error"))browser()
+#     df <- cbind(id=rep(n,nrow(df)),df)
+#   })
+#   do.call(rbind,l)
+# }
+# data.svq <- identity
+# data.svg <- function(x)attr(x,"data")
+# data.svy <- function(x)attr(x,"data")
+# 
+# apply <- function(x,f,...)UseMethod("apply", x)
+# apply.default <- base::apply
+# 
+# apply.svy <- function(s,f,...)preserve(s,function(x)
+#   lapply(x,function(x1){
+#     browser()
+#     apply(x1,f,...)
+#   })
+# )
+# apply.svg <- apply.svy
+# apply.svr <- apply.svy
+# apply.svq <- function(x,f,...)preserve(x,f,...)
 
 #' turn a data.frame into the instance list for kobo
 df2dat <- function(df)
