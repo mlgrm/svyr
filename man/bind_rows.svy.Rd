@@ -2,24 +2,29 @@
 % Please edit documentation in R/bind_rows.R
 \name{bind_rows.svy}
 \alias{bind_rows.svy}
-\title{bind \code{svy}s with the same structure (form) together into a single \code{svy}}
+\title{bind \code{svy}s with the same structure (form) together into a single 
+\code{svy}}
 \usage{
-\method{bind_rows}{svy}(.l, .id = NULL,
+\method{bind_rows}{svy}(l, ..., .id = "id",
   .names = getOption("preserve_atts", c("node", "group", "class",
   "languages")))
 }
 \arguments{
-\item{.l}{a list of \code{svy}s to bind together, rowwise.  this implementation does
-not accept the dots format used in \code{dplyr::bind_rows}.}
+\item{l}{a list of \code{svy}s to bind together, rowwise.  this 
+implementation does not accept the dots format used in 
+\code{dplyr::bind_rows}.}
+
+\item{...}{parameters to pass to dplyr::bind_cols}
 
 \item{.id}{the name of a (new) column to index the rows being bound}
 
 \item{.names}{the names of the attributes to be preserved over the binding}
 }
 \description{
-bind \code{svy}s with the same structure (form) together into a single \code{svy}
+bind \code{svy}s with the same structure (form) together into a single 
+\code{svy}
 }
 \details{
-this is a method to do \code{dplyr::bind_rows()} on \code{svy}s without
-clobbering the metadata attributes
+this is a method to do \code{dplyr::bind_rows()} on \code{svy}s 
+without clobbering the metadata attributes or breaking matrix columns
 }

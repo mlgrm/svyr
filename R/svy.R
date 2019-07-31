@@ -20,6 +20,7 @@
 #' s <- svy(node = jsonlite::fromJSON("data/form.json"),
 #' dat = jsonlite::fromJSON("data/data.json"))
 #' }
+#' @import magrittr tidyverse
 svy <- function(dat = kobo_data(),
                 form = kobo_form(),
                 group = NULL) {

@@ -7,21 +7,14 @@ Maintainer: mlgrm <mlgrm@mlgrm.net>
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
 Depends: 
-    R (>= 3.1.0),
-    plyr,
-    magrittr,
-    tidyverse
+    R (>= 3.1.0)
 Imports:
+    magrittr,
+    tidyverse,
     curl,
     Hmisc,
     jsonlite,
-    xml2,
-    xtable,
-    plyr,
-    dplyr,
     dbplyr,
-    purrr,
-    googlesheets,
     googledrive,
     RPostgres
 Remotes:
