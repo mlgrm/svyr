@@ -53,15 +53,14 @@ svq <- function(dat, node, group){
 
 svq.group <- function(dat, node, group){
   map(node$children, function(n){
+    
     # recurse on groups
     if(n$type == "group") return(svq.group(dat, n, c(group, n$name)))
-    
     col_name <- str_flatten(c(group, n$name), "/")
     
     # the csv export format places select multiples in multiple
     # columns so we have to allow that pattern extension
     pattern <- str_glue("^{col_name}(/[A-z0-9_]+)?$")
-    
     datum <- dat[str_which(names(dat), pattern)]
     
     if(length(datum) == 1) datum <- datum[[1]]
@@ -162,15 +161,12 @@ svq.survey <- svq.group
 
 # repeat is a reserved word and make.names adds the terminal dot
 svq.repeat. <- function(dat, node, group){
-  # stopifnot(is.list(dat))
-  # if(!is.list(dat)) browser()
-  # attr(dat, "empty") <- svy(NULL, node, group)
-  dat[!(sapply(dat,is.null) | is.na(dat))] %<>%
-  # dat %<>%
-    map(structure, class="odk_data") %>% 
-    map(~ if(length(.) == 0) list() else 
-      svy(., form = node, group = group)) %>%
-    structure(node = node, group = group)
+  dat[!(map_lgl(dat,is.null) | is.na(dat))] %<>%
+    map(structure, class = "odk_data") %>% 
+    map(
+      ~ if(length(.) == 0) list() else 
+        svy(., form = node, group = c(group, node$name))
+    )
   dat
 }
 
